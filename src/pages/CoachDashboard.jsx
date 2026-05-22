@@ -287,7 +287,7 @@ export default function CoachDashboard() {
       setFiltered(data.students);
       setStats(data.stats);
     } catch {
-      setError('Failed to load students. Please refresh.');
+      setError('Failed to load athletes. Please refresh.');
     } finally {
       setLoading(false);
     }

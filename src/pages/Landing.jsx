@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// pages/Landing.jsx  –  Landing with sidebar + two action cards
+// pages/Landing.jsx  –  Landing with sidebar + three action cards
 // Professional: indigo + cyan palette, white light bg
 // ─────────────────────────────────────────────────────────────
 import React from 'react';
@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import PersonAddAltIcon       from '@mui/icons-material/PersonAddAlt';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import LoginIcon              from '@mui/icons-material/Login';
 import ThemeToggle from '../components/ThemeToggle';
 
 export default function Landing() {
@@ -27,6 +28,16 @@ export default function Landing() {
       accent:   theme.palette.primary.main,
       tag:      'New Registration',
       stats:    [{ value: '8+', label: 'Sports' }, { value: '6', label: 'Steps' }, { value: 'Free', label: 'Entry' }],
+    },
+    {
+      id:       'athlete-login',
+      label:    'ATHLETE LOGIN',
+      sublabel: 'Track your application & profile',
+      icon:     LoginIcon,
+      path:     '/student/login',
+      accent:   '#22c55e',
+      tag:      'Athlete Portal',
+      stats:    [{ value: '24/7', label: 'Access' }, { value: 'Live', label: 'Status' }, { value: 'Free', label: 'Entry' }],
     },
     {
       id:       'admin',
@@ -249,7 +260,7 @@ export default function Landing() {
             © 2026 Sports Club Management System
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            {['Student Login', 'Admin Login'].map((link, i) => (
+            {['Athlete Login', 'Admin Login'].map((link, i) => (
               <Typography
                 key={link}
                 variant="caption"

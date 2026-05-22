@@ -102,7 +102,7 @@ export default function StudentProfile() {
   if (error || !student) {
     return (
       <Container sx={{ py: 4 }}>
-        <Alert severity="error" sx={{ borderRadius: 2 }}>{error || 'Student not found.'}</Alert>
+        <Alert severity="error" sx={{ borderRadius: 2 }}>{error || 'Athlete not found.'}</Alert>
       </Container>
     );
   }
@@ -122,7 +122,7 @@ export default function StudentProfile() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Navbar title="🏅 Student Profile" />
+      <Navbar title="🏅 Athlete Profile" />
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
 
