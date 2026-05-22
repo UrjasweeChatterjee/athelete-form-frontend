@@ -40,6 +40,21 @@ const inputSx = (isDark) => ({
   mb: 0,
 });
 
+// Defined OUTSIDE the component to prevent React from treating it as
+// a new component type on every render (which causes focus loss).
+function RegField({ name, label, type='text', half=false, readOnly=false, rows, max, form, onChange, errors, isDark, ...rest }) {
+  return (
+    <Grid item xs={12} sm={half ? 6 : 12}>
+      <TextField fullWidth label={label} name={name} type={type} value={form[name]||''}
+        onChange={onChange} error={!!errors[name]} helperText={errors[name]}
+        multiline={!!rows} rows={rows}
+        InputProps={{ readOnly, ...(max ? { inputProps:{ maxLength:max } } : {}) }}
+        InputLabelProps={type==='date'?{shrink:true}:undefined}
+        sx={inputSx(isDark)} {...rest} />
+    </Grid>
+  );
+}
+
 export default function AtheleteRegister() {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -119,23 +134,14 @@ export default function AtheleteRegister() {
     } finally { setLoading(false); }
   };
 
-  const Field = ({ name, label, type='text', half=false, readOnly=false, rows, max, ...rest }) => (
-    <Grid item xs={12} sm={half ? 6 : 12}>
-      <TextField fullWidth label={label} name={name} type={type} value={form[name]||''}
-        onChange={change} error={!!errors[name]} helperText={errors[name]}
-        multiline={!!rows} rows={rows}
-        InputProps={{ readOnly, ...(max ? { inputProps:{ maxLength:max } } : {}) }}
-        InputLabelProps={type==='date'?{shrink:true}:undefined}
-        sx={inputSx(isDark)} {...rest} />
-    </Grid>
-  );
+
 
   const stepContent = [
     // Step 0 – Personal
     <Grid container spacing={2.5} key="s0">
-      <Field name="full_name" label="Full Name" half />
-      <Field name="dob" label="Date of Birth" type="date" half />
-      <Field name="age" label="Age (auto-calculated)" half readOnly />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="full_name" label="Full Name" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="dob" label="Date of Birth" type="date" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="age" label="Age (auto-calculated)" half readOnly />
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth error={!!errors.gender} sx={inputSx(isDark)}>
           <InputLabel>Gender</InputLabel>
@@ -145,15 +151,15 @@ export default function AtheleteRegister() {
           {errors.gender && <FormHelperText>{errors.gender}</FormHelperText>}
         </FormControl>
       </Grid>
-      <Field name="mobile" label="Mobile Number" half max={10} />
-      <Field name="email" label="Email Address" type="email" half />
-      <Field name="password" label="Password" type="password" />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="mobile" label="Mobile Number" half max={10} />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="email" label="Email Address" type="email" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="password" label="Password" type="password" />
     </Grid>,
 
     // Step 1 – Guardian
     <Grid container spacing={2.5} key="s1">
-      <Field name="guardian_name" label="Guardian Name" half />
-      <Field name="guardian_mobile" label="Guardian Mobile" half max={10} />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="guardian_name" label="Guardian Name" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="guardian_mobile" label="Guardian Mobile" half max={10} />
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth error={!!errors.relation} sx={inputSx(isDark)}>
           <InputLabel>Relation</InputLabel>
@@ -167,17 +173,17 @@ export default function AtheleteRegister() {
 
     // Step 2 – Address
     <Grid container spacing={2.5} key="s2">
-      <Field name="address" label="Address" rows={2} />
-      <Field name="city" label="City" half />
-      <Field name="state" label="State" half />
-      <Field name="pincode" label="Pincode" half max={6} />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="address" label="Address" rows={2} />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="city" label="City" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="state" label="State" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="pincode" label="Pincode" half max={6} />
     </Grid>,
 
     // Step 3 – Club
     <Grid container spacing={2.5} key="s3">
-      <Field name="club_name" label="Club Name (optional)" half />
-      <Field name="state_association" label="State Association (optional)" half />
-      <Field name="competition_name" label="Competition Name (optional)" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="club_name" label="Club Name (optional)" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="state_association" label="State Association (optional)" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="competition_name" label="Competition Name (optional)" half />
       <Grid item xs={12} sm={6}>
         <FormControl fullWidth sx={inputSx(isDark)}>
           <InputLabel>Age Group (optional)</InputLabel>
