@@ -1,11 +1,6 @@
-// ─────────────────────────────────────────────────────────────
-// pages/AtheleteDashboard.jsx  –  Ticket card style (dark+lime)
-// ─────────────────────────────────────────────────────────────
+// pages/AtheleteDashboard.jsx  –  Stitch "Digital ID" Design
 import React, { useEffect, useState } from 'react';
-import {
-  Box, Container, Typography, Chip, Grid,
-  Alert, useTheme, alpha, Divider,
-} from '@mui/material';
+import { Box, Container, Typography, Chip, Grid, useTheme, alpha, Divider, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_COLORS } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
@@ -14,252 +9,277 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import PeopleIcon from '@mui/icons-material/People';
+import LogoutIcon from '@mui/icons-material/Logout';
+import VerifiedIcon from '@mui/icons-material/Verified';
 
-// Use shared status colors from ThemeContext
 const STATUS_CONFIG = {
-  ...STATUS_COLORS,
-  Pending: { ...STATUS_COLORS.Pending, icon: '⏳', label: 'PENDING' },
-  Approved: { ...STATUS_COLORS.Approved, icon: '✅', label: 'APPROVED' },
-  Rejected: { ...STATUS_COLORS.Rejected, icon: '❌', label: 'REJECTED' },
+  Pending:  { ...STATUS_COLORS.Pending,  icon: '⏳', label: 'PENDING REVIEW'  },
+  Approved: { ...STATUS_COLORS.Approved, icon: '✅', label: 'APPROVED'         },
+  Rejected: { ...STATUS_COLORS.Rejected, icon: '❌', label: 'REJECTED'         },
 };
 
 const SPORT_EMOJIS = {
-  Cricket: '🏏', Football: '⚽', Badminton: '🏸', Athletics: '🏃',
-  Swimming: '🏊', Basketball: '🏀', Volleyball: '🏐', 'Table Tennis': '🏓',
+  Cricket:'🏏', Football:'⚽', Badminton:'🏸', Athletics:'🏃',
+  Swimming:'🏊', Basketball:'🏀', Volleyball:'🏐', 'Table Tennis':'🏓',
 };
 
 export default function AtheleteDashboard() {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const theme    = useTheme();
+  const isDark   = theme.palette.mode === 'dark';
 
-  const [student, setStudent] = useState(null);
+  const [athlete, setAthlete] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('student');
     if (!stored) { navigate('/athelete/login'); return; }
-    setStudent(JSON.parse(stored));
+    setAthlete(JSON.parse(stored));
   }, [navigate]);
 
   const handleLogout = () => { localStorage.removeItem('student'); navigate('/'); };
-  const parseSports = (raw) => { try { return JSON.parse(raw); } catch { return raw ? [raw] : []; } };
+  const parseSports  = (raw) => { try { return JSON.parse(raw); } catch { return raw ? [raw] : []; } };
 
-  if (!student) return null;
+  if (!athlete) return null;
 
-  const sports = parseSports(student.sports_applied);
-  const statusCfg = STATUS_CONFIG[student.status] || STATUS_CONFIG.Pending;
-  const registered = student.created_at
-    ? new Date(student.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+  const sports    = parseSports(athlete.sports_applied);
+  const statusCfg = STATUS_CONFIG[athlete.status] || STATUS_CONFIG.Pending;
+  const registered = athlete.created_at
+    ? new Date(athlete.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })
     : '—';
 
-  const cardBg = isDark ? '#111827' : '#FFFFFF';
+  // Apex Velocity tokens
+  const LIME   = isDark ? '#d4ff00' : '#536600';
+  const CYAN   = isDark ? '#06b6d4' : '#004e5c';
+  const INDIGO = '#6366f1';
+  const bg     = isDark ? '#0A0A12' : '#F0F4F8';
+  const cardBg = isDark ? 'rgba(17,24,39,0.7)' : 'rgba(255,255,255,0.9)';
+  const border = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
+  const textPri = isDark ? '#e2e4cf' : '#1F313E';
+  const textSec = isDark ? 'rgba(197,201,172,0.65)' : 'rgba(31,49,62,0.55)';
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Navbar title="My Dashboard" userName={student.full_name} onLogout={handleLogout} />
+    <Box sx={{ minHeight: '100vh', bgcolor: bg, position: 'relative' }}>
+      {/* Mesh blobs */}
+      {isDark && <>
+        <Box sx={{ position:'fixed', top:'-5%', right:'5%', width:450, height:450, borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.09) 0%, transparent 70%)', pointerEvents:'none', zIndex:0 }} />
+        <Box sx={{ position:'fixed', bottom:'10%', left:'-5%', width:350, height:350, borderRadius:'50%', background:'radial-gradient(circle, rgba(212,255,0,0.05) 0%, transparent 70%)', pointerEvents:'none', zIndex:0 }} />
+      </>}
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <Navbar title="Sports Club Management" />
 
-        {/* Section label */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="overline" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
-            ATHLETE PORTAL
-          </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
-            YOUR REGISTRATION TICKET
-          </Typography>
-        </Box>
+      <Container maxWidth="lg" sx={{ py: 5, position: 'relative', zIndex: 1 }}>
 
-        {/* ── Ticket Card ─────────────────────────────────────── */}
-        <Box
-          sx={{
-            bgcolor: cardBg,
-            borderRadius: '24px',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)'}`,
-            overflow: 'hidden',
-            boxShadow: isDark
-              ? '0 24px 80px rgba(0,0,0,0.6)'
-              : '0 8px 40px rgba(0,0,0,0.08)',
-            animation: 'fadeInUp 0.6s ease both',
-          }}
-        >
-          {/* ── Status accent strip ─────────────────────────── */}
-          <Box sx={{ height: 3, bgcolor: statusCfg.color }} />
-
-          {/* ── Ticket header ───────────────────────────────── */}
-          <Box
-            sx={{
-              px: { xs: 3, sm: 4 },
-              pt: 4,
-              pb: 3.5,
-              bgcolor: isDark ? '#111' : '#FAFAFA',
-              borderBottom: `1px solid ${theme.palette.divider}`,
-              position: 'relative',
-              overflow: 'hidden',
-            }}
+        {/* ── Page Header ────────────────────────────────────────── */}
+        <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb: 4 }}>
+          <Box>
+            <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.65rem', letterSpacing:'0.12em', color: CYAN, textTransform:'uppercase', mb:0.5 }}>
+              ATHLETE PORTAL
+            </Typography>
+            <Typography variant="h4" sx={{ fontFamily:"'Google Sans Display','Montserrat',sans-serif", fontWeight:800, letterSpacing:'-0.02em', color: textPri }}>
+              My Profile
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined" size="small" startIcon={<LogoutIcon />} onClick={handleLogout}
+            sx={{ borderRadius:'9999px', borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)', color: textSec, fontFamily:"'Google Sans',sans-serif", fontWeight:600, '&:hover':{ borderColor: LIME, color: LIME } }}
           >
-            {/* Background pattern dots */}
-            {[...Array(6)].map((_, i) => (
-              <Box
-                key={i}
-                sx={{
-                  position: 'absolute',
-                  right: 20 + i * 60,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 6, height: 6,
-                  borderRadius: '50%',
-                  bgcolor: alpha(statusCfg.color, 0.15 - i * 0.02),
-                  display: { xs: 'none', sm: 'block' },
-                }}
-              />
-            ))}
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
-              <Box>
-                <Typography variant="overline" sx={{ color: 'text.secondary', fontSize: '0.6rem', letterSpacing: '0.15em' }}>
-                  ATHLETE REGISTRATION
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 900, color: 'text.primary', mt: 0.25, letterSpacing: '-0.02em' }}>
-                  {student.full_name}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                  {student.email}
-                </Typography>
-              </Box>
-
-              {/* Status badge */}
-              <Box
-                sx={{
-                  px: 2, py: 1.5,
-                  borderRadius: '14px',
-                  bgcolor: statusCfg.bg,
-                  border: `1.5px solid ${statusCfg.border}`,
-                  textAlign: 'center',
-                  minWidth: 100,
-                }}
-              >
-                <Typography sx={{ fontSize: 28, lineHeight: 1 }}>{statusCfg.icon}</Typography>
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: statusCfg.color, letterSpacing: '0.1em', mt: 0.5 }}>
-                  {statusCfg.label}
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Sport chips */}
-            {sports.length > 0 && (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2.5 }}>
-                {sports.map(s => (
-                  <Box
-                    key={s}
-                    sx={{
-                      px: 1.25, py: 0.35,
-                      borderRadius: '8px',
-                      bgcolor: alpha(statusCfg.color, 0.1),
-                      border: `1px solid ${alpha(statusCfg.color, 0.25)}`,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: statusCfg.color }}>
-                      {SPORT_EMOJIS[s] || '🏅'} {s}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </Box>
-
-          {/* ── Ticket perforation ──────────────────────────── */}
-          <Box sx={{ position: 'relative', height: 0 }}>
-            <Box sx={{ position: 'absolute', left: -14, top: -14, width: 28, height: 28, borderRadius: '50%', bgcolor: 'background.default', zIndex: 2 }} />
-            <Box sx={{ position: 'absolute', right: -14, top: -14, width: 28, height: 28, borderRadius: '50%', bgcolor: 'background.default', zIndex: 2 }} />
-          </Box>
-
-          {/* ── Ticket body ─────────────────────────────────── */}
-          <Box sx={{ px: { xs: 3, sm: 4 }, pt: 3.5, pb: 3 }}>
-
-            {/* Status alerts */}
-            {student.status === 'Approved' && (
-              <Alert severity="success" sx={{ mb: 3 }}>
-                🎉 Congratulations! Your application has been approved. Welcome to the club!
-              </Alert>
-            )}
-            {student.status === 'Rejected' && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                Your application was rejected. Please contact your coach for more information.
-              </Alert>
-            )}
-
-            <Grid container spacing={3}>
-              {/* Personal */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="overline" sx={{ color: 'text.secondary', fontSize: '0.6rem', letterSpacing: '0.12em', display: 'block', mb: 2 }}>
-                  PERSONAL INFO
-                </Typography>
-                {[
-                  { icon: <CalendarTodayIcon sx={{ fontSize: 14 }} />, label: 'Date of Birth', value: `${student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : '—'}${student.age ? ` · Age ${student.age}` : ''}` },
-                  { icon: <PhoneIcon sx={{ fontSize: 14 }} />, label: 'Mobile', value: student.mobile || '—' },
-                  { icon: <PeopleIcon sx={{ fontSize: 14 }} />, label: 'Gender', value: student.gender || '—' },
-                ].map(({ icon, label, value }) => (
-                  <Box key={label} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ color: 'text.secondary', mt: 0.3 }}>{icon}</Box>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em' }}>
-                        {label.toUpperCase()}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{value}</Typography>
-                    </Box>
-                  </Box>
-                ))}
-              </Grid>
-
-              {/* Competition */}
-              <Grid item xs={12} sm={6}>
-                <Typography variant="overline" sx={{ color: 'text.secondary', fontSize: '0.6rem', letterSpacing: '0.12em', display: 'block', mb: 2 }}>
-                  COMPETITION INFO
-                </Typography>
-                {[
-                  { icon: <EmojiEventsIcon sx={{ fontSize: 14 }} />, label: 'Competition', value: student.competition_name || '—' },
-                  { icon: <EmojiEventsIcon sx={{ fontSize: 14 }} />, label: 'Age Group', value: student.age_group || '—' },
-                  { icon: <LocationOnIcon sx={{ fontSize: 14 }} />, label: 'Club / State', value: [student.club_name, student.state_association].filter(Boolean).join(' · ') || '—' },
-                ].map(({ icon, label, value }) => (
-                  <Box key={label} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ color: 'text.secondary', mt: 0.3 }}>{icon}</Box>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em' }}>
-                        {label.toUpperCase()}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>{value}</Typography>
-                    </Box>
-                  </Box>
-                ))}
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 2.5, borderStyle: 'dashed' }} />
-
-            {/* Footer */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-              <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.6 }}>
-                Registered on {registered}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: theme.palette.primary.main,
-                  fontFamily: 'monospace',
-                  fontWeight: 700,
-                  fontSize: '0.7rem',
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  px: 1.25, py: 0.4,
-                  borderRadius: '6px',
-                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                }}
-              >
-                #{String(student.id || '').padStart(6, '0')}
-              </Typography>
-            </Box>
-          </Box>
+            Logout
+          </Button>
         </Box>
+
+        <Grid container spacing={3}>
+
+          {/* ── Left: Digital ID Card ──────────────────────────── */}
+          <Grid item xs={12} md={4}>
+            <Box sx={{
+              bgcolor: cardBg, backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)',
+              border:`1px solid ${border}`, borderRadius:'24px', overflow:'hidden',
+              backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+              boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.08)',
+            }}>
+              {/* Status color bar */}
+              <Box sx={{ height: 4, bgcolor: statusCfg.color }} />
+
+              <Box sx={{ p: 3 }}>
+                {/* Avatar */}
+                <Box sx={{ display:'flex', flexDirection:'column', alignItems:'center', mb: 3 }}>
+                  <Box sx={{
+                    width: 88, height: 88, borderRadius: '50%', mb: 1.5,
+                    background: `linear-gradient(135deg, ${alpha(statusCfg.color, 0.2)}, ${alpha(INDIGO, 0.2)})`,
+                    border: `3px solid ${alpha(statusCfg.color, 0.4)}`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize: '2.2rem', fontWeight:900,
+                    color: statusCfg.color,
+                    fontFamily:"'Google Sans Display',sans-serif",
+                  }}>
+                    {athlete.full_name?.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase() || '?'}
+                  </Box>
+                  <Typography variant="h6" sx={{ fontFamily:"'Google Sans Display','Montserrat',sans-serif", fontWeight:800, color: textPri, textAlign:'center', letterSpacing:'-0.01em' }}>
+                    {athlete.full_name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif" }}>
+                    {athlete.email}
+                  </Typography>
+                </Box>
+
+                {/* Status badge */}
+                <Box sx={{
+                  bgcolor: statusCfg.bg || alpha(statusCfg.color, 0.1),
+                  border: `1px solid ${statusCfg.border || alpha(statusCfg.color, 0.3)}`,
+                  borderRadius:'12px', p: 2, mb: 2.5, textAlign:'center',
+                }}>
+                  <Typography sx={{ fontSize:'1.4rem', mb:0.5 }}>{statusCfg.icon}</Typography>
+                  <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.7rem', letterSpacing:'0.1em', color: statusCfg.color }}>
+                    APPLICATION {statusCfg.label}
+                  </Typography>
+                </Box>
+
+                {/* ID number / ref */}
+                <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderRadius:'10px', p: 1.5, textAlign:'center' }}>
+                  <Typography variant="caption" sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif", display:'block', mb:0.25 }}>ATHLETE ID</Typography>
+                  <Typography sx={{ fontFamily:'monospace', fontSize:'0.8rem', color: CYAN, fontWeight:700, letterSpacing:'0.08em' }}>
+                    SCM-{String(athlete.id || 0).padStart(6, '0')}
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 2, borderColor: border }} />
+
+                <Typography variant="caption" sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif", display:'block', textAlign:'center' }}>
+                  Registered: {registered}
+                </Typography>
+              </Box>
+            </Box>
+          </Grid>
+
+          {/* ── Right: Details ─────────────────────────────────── */}
+          <Grid item xs={12} md={8}>
+            <Box sx={{ display:'flex', flexDirection:'column', gap: 3 }}>
+
+              {/* Personal Info */}
+              <Box sx={{
+                bgcolor: cardBg, backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)',
+                border:`1px solid ${border}`, borderRadius:'20px', p: 3,
+                backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+              }}>
+                <Box sx={{ display:'flex', alignItems:'center', gap:1, mb: 2.5 }}>
+                  <VerifiedIcon sx={{ color: CYAN, fontSize: 18 }} />
+                  <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.72rem', letterSpacing:'0.1em', color: textSec, textTransform:'uppercase' }}>
+                    PERSONAL INFORMATION
+                  </Typography>
+                </Box>
+                <Grid container spacing={2}>
+                  {[
+                    { icon:<CalendarTodayIcon sx={{fontSize:15}}/>, label:'Date of Birth', value: athlete.dob ? `${new Date(athlete.dob).toLocaleDateString('en-IN')}${athlete.age ? ` · Age ${athlete.age}` : ''}` : '—' },
+                    { icon:<PhoneIcon sx={{fontSize:15}}/>,         label:'Mobile',        value: athlete.mobile || '—' },
+                    { icon:<PeopleIcon sx={{fontSize:15}}/>,        label:'Gender',        value: athlete.gender || '—' },
+                    { icon:<LocationOnIcon sx={{fontSize:15}}/>,    label:'Location',      value: [athlete.city, athlete.state].filter(Boolean).join(', ') || '—' },
+                  ].map(({ icon, label, value }) => (
+                    <Grid item xs={12} sm={6} key={label}>
+                      <Box sx={{ display:'flex', gap:1.5, alignItems:'flex-start' }}>
+                        <Box sx={{ color: textSec, mt:0.2, flexShrink:0 }}>{icon}</Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif", fontWeight:600, letterSpacing:'0.04em', display:'block' }}>
+                            {label.toUpperCase()}
+                          </Typography>
+                          <Typography sx={{ color: textPri, fontFamily:"'Google Sans',sans-serif", fontWeight:500, fontSize:'0.88rem' }}>
+                            {value}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+
+              {/* Sports & Competition */}
+              <Box sx={{
+                bgcolor: cardBg, backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)',
+                border:`1px solid ${border}`, borderRadius:'20px', p: 3,
+                backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+              }}>
+                <Box sx={{ display:'flex', alignItems:'center', gap:1, mb: 2.5 }}>
+                  <EmojiEventsIcon sx={{ color: isDark ? '#d4ff00' : '#536600', fontSize: 18 }} />
+                  <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.72rem', letterSpacing:'0.1em', color: textSec, textTransform:'uppercase' }}>
+                    SPORTS & COMPETITION
+                  </Typography>
+                </Box>
+
+                {/* Sport chips */}
+                {sports.length > 0 && (
+                  <Box sx={{ display:'flex', flexWrap:'wrap', gap:1, mb: 2.5 }}>
+                    {sports.map(sport => (
+                      <Chip
+                        key={sport}
+                        label={`${SPORT_EMOJIS[sport] || '🏅'} ${sport}`}
+                        sx={{
+                          fontFamily:"'Google Sans',sans-serif", fontWeight:600, fontSize:'0.8rem',
+                          bgcolor: isDark ? 'rgba(212,255,0,0.1)' : 'rgba(83,102,0,0.08)',
+                          color: isDark ? '#d4ff00' : '#536600',
+                          border: `1px solid ${isDark ? 'rgba(212,255,0,0.25)' : 'rgba(83,102,0,0.2)'}`,
+                          borderRadius:'9999px',
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+
+                <Grid container spacing={2}>
+                  {[
+                    { icon:<EmojiEventsIcon sx={{fontSize:15}}/>, label:'Competition', value: athlete.competition_name || '—' },
+                    { icon:<EmojiEventsIcon sx={{fontSize:15}}/>, label:'Age Group',   value: athlete.age_group || '—' },
+                    { icon:<LocationOnIcon sx={{fontSize:15}}/>,  label:'Club',        value: athlete.club_name || '—' },
+                    { icon:<LocationOnIcon sx={{fontSize:15}}/>,  label:'State Assoc.',value: athlete.state_association || '—' },
+                  ].map(({ icon, label, value }) => (
+                    <Grid item xs={12} sm={6} key={label}>
+                      <Box sx={{ display:'flex', gap:1.5, alignItems:'flex-start' }}>
+                        <Box sx={{ color: textSec, mt:0.2, flexShrink:0 }}>{icon}</Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif", fontWeight:600, letterSpacing:'0.04em', display:'block' }}>
+                            {label.toUpperCase()}
+                          </Typography>
+                          <Typography sx={{ color: textPri, fontFamily:"'Google Sans',sans-serif", fontWeight:500, fontSize:'0.88rem' }}>
+                            {value}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+
+              {/* Guardian Info */}
+              <Box sx={{
+                bgcolor: cardBg, backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)',
+                border:`1px solid ${border}`, borderRadius:'20px', p: 3,
+                backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+              }}>
+                <Box sx={{ display:'flex', alignItems:'center', gap:1, mb: 2.5 }}>
+                  <PeopleIcon sx={{ color: INDIGO, fontSize: 18 }} />
+                  <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.72rem', letterSpacing:'0.1em', color: textSec, textTransform:'uppercase' }}>
+                    GUARDIAN DETAILS
+                  </Typography>
+                </Box>
+                <Grid container spacing={2}>
+                  {[
+                    { label:'Guardian Name', value: athlete.guardian_name || '—' },
+                    { label:'Relation',      value: athlete.relation || '—'      },
+                    { label:'Mobile',        value: athlete.guardian_mobile || '—'},
+                  ].map(({ label, value }) => (
+                    <Grid item xs={12} sm={4} key={label}>
+                      <Typography variant="caption" sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif", fontWeight:600, letterSpacing:'0.04em', display:'block' }}>
+                        {label.toUpperCase()}
+                      </Typography>
+                      <Typography sx={{ color: textPri, fontFamily:"'Google Sans',sans-serif", fontWeight:500, fontSize:'0.88rem' }}>
+                        {value}
+                      </Typography>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+
+            </Box>
+          </Grid>
+        </Grid>
       </Container>
     </Box>
   );

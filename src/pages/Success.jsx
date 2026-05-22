@@ -1,141 +1,119 @@
-// ─────────────────────────────────────────────────────────────
-// pages/Success.jsx  –  Registration success page (revamped)
-// ─────────────────────────────────────────────────────────────
+// pages/Success.jsx  –  Stitch Apex Velocity Design
 import React from 'react';
-import { Box, Container, Typography, Button, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Button, useTheme, alpha } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import LoginIcon       from '@mui/icons-material/Login';
+import PersonAddIcon   from '@mui/icons-material/PersonAdd';
 
 export default function Success() {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const theme    = useTheme();
+  const isDark   = theme.palette.mode === 'dark';
+
+  const LIME    = isDark ? '#d4ff00' : '#536600';
+  const CYAN    = isDark ? '#06b6d4' : '#004e5c';
+  const bg      = isDark ? '#0A0A12' : '#F0F4F8';
+  const cardBg  = isDark ? 'rgba(17,24,39,0.75)' : 'rgba(255,255,255,0.92)';
+  const border  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)';
+  const textPri = isDark ? '#e2e4cf' : '#1F313E';
+  const textSec = isDark ? 'rgba(197,201,172,0.65)' : 'rgba(31,49,62,0.55)';
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Background glow */}
+    <Box sx={{ minHeight:'100vh', bgcolor: bg, display:'flex', alignItems:'center', justifyContent:'center', position:'relative', p: 3 }}>
+
+      {/* Mesh blobs */}
+      {isDark && <>
+        <Box sx={{ position:'fixed', top:'10%', left:'10%', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(212,255,0,0.08) 0%, transparent 70%)', filter:'blur(40px)', pointerEvents:'none' }} />
+        <Box sx={{ position:'fixed', bottom:'10%', right:'10%', width:350, height:350, borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.07) 0%, transparent 70%)', filter:'blur(40px)', pointerEvents:'none' }} />
+      </>}
+
       <Box sx={{
-        position: 'absolute',
-        top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 600, height: 600,
-        borderRadius: '50%',
-        background: `radial-gradient(circle, ${alpha(theme.palette.success.main, 0.12)} 0%, transparent 70%)`,
-        filter: 'blur(60px)',
-      }} />
+        width:'100%', maxWidth:500, zIndex:1,
+        bgcolor: cardBg, backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)',
+        border:`1px solid ${border}`, borderRadius:'28px', overflow:'hidden',
+        backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+        boxShadow: isDark ? '0 24px 80px rgba(0,0,0,0.5)' : '0 8px 40px rgba(0,0,0,0.1)',
+        animation:'fadeInUp 0.55s ease both',
+        textAlign:'center',
+      }}>
+        {/* Lime accent top bar */}
+        <Box sx={{ height:4, background:`linear-gradient(90deg, ${LIME}, ${CYAN})` }} />
 
-      {/* Theme toggle */}
-      <Box sx={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
-        <ThemeToggle />
-      </Box>
-
-      <Container maxWidth="sm" sx={{ zIndex: 1 }}>
-        <Box
-          sx={{
-            bgcolor: isDark ? alpha('#1A1A2E', 0.85) : alpha('#fff', 0.9),
-            backdropFilter: 'blur(24px)',
-            border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
-            borderRadius: 4,
-            p: { xs: 4, sm: 6 },
-            textAlign: 'center',
-            boxShadow: isDark
-              ? '0 24px 80px rgba(0,0,0,0.5)'
-              : `0 8px 48px ${alpha(theme.palette.success.main, 0.15)}`,
-            animation: 'fadeInUp 0.7s ease both',
-          }}
-        >
-          {/* Animated success icon */}
-          <Box
-            sx={{
-              width: 100,
-              height: 100,
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${theme.palette.success.main}, #00b09b)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mx: 'auto',
-              mb: 3,
-              fontSize: 48,
-              boxShadow: `0 12px 40px ${alpha(theme.palette.success.main, 0.4)}`,
-              animation: 'popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both',
-            }}
-          >
-            🎉
+        <Box sx={{ p:{ xs:4, sm:5 } }}>
+          {/* Success icon */}
+          <Box sx={{
+            width:80, height:80, borderRadius:'50%', mx:'auto', mb:3,
+            bgcolor: isDark ? 'rgba(212,255,0,0.1)' : 'rgba(83,102,0,0.08)',
+            border:`3px solid ${isDark ? 'rgba(212,255,0,0.3)' : 'rgba(83,102,0,0.25)'}`,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow: isDark ? '0 0 32px rgba(212,255,0,0.2)' : 'none',
+          }}>
+            <CheckCircleIcon sx={{ fontSize:42, color: LIME }} />
           </Box>
 
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: 'text.primary' }}>
-            You're Registered!
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 1 }}>
-            Thank you for registering as an athlete at our Sports Club.
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4 }}>
-            Your application is now{' '}
-            <Box
-              component="span"
-              sx={{
-                fontWeight: 700,
-                color: '#FDCB6E',
-                bgcolor: alpha('#FDCB6E', 0.15),
-                px: 1,
-                py: 0.25,
-                borderRadius: 1,
-              }}
-            >
-              ⏳ Pending Review
-            </Box>
-            {' '}by the coach. You will receive an email once your application is processed.
+          {/* Overline */}
+          <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.65rem', letterSpacing:'0.14em', color: isDark ? '#d4ff00' : '#536600', textTransform:'uppercase', mb:1 }}>
+            REGISTRATION COMPLETE
           </Typography>
 
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* Headline */}
+          <Typography variant="h4" sx={{
+            fontFamily:"'Google Sans Display','Montserrat',sans-serif", fontWeight:800,
+            letterSpacing:'-0.02em', color: textPri, mb:2, lineHeight:1.2,
+          }}>
+            You're In the System
+          </Typography>
+
+          {/* Body */}
+          <Typography sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif", lineHeight:1.7, mb:1.5, fontSize:'0.95rem' }}>
+            Your athlete application has been received and is now <strong style={{ color: '#FBBF24' }}>pending review</strong> by the coaching staff.
+          </Typography>
+          <Typography variant="body2" sx={{ color: textSec, fontFamily:"'Google Sans',sans-serif", lineHeight:1.6, mb:4 }}>
+            You'll receive an email notification once your application has been reviewed. Use your login credentials to track your status anytime.
+          </Typography>
+
+          {/* Status indicator */}
+          <Box sx={{ bgcolor: isDark ? 'rgba(251,191,36,0.08)' : 'rgba(251,191,36,0.06)', border:`1px solid rgba(251,191,36,0.25)`, borderRadius:'12px', p:2, mb:4 }}>
+            <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.78rem', color:'#FBBF24' }}>
+              ⏳ APPLICATION STATUS: PENDING REVIEW
+            </Typography>
+          </Box>
+
+          {/* CTAs */}
+          <Box sx={{ display:'flex', flexDirection:'column', gap:1.5 }}>
             <Button
-              variant="contained"
-              size="large"
+              fullWidth variant="contained" size="large"
+              startIcon={<LoginIcon />}
               onClick={() => navigate('/athelete/login')}
               sx={{
-                borderRadius: 3,
-                px: 4,
-                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.35)}`,
-                '&:hover': { boxShadow: `0 6px 28px ${alpha(theme.palette.primary.main, 0.45)}` },
+                borderRadius:'12px', py:1.4,
+                fontFamily:"'Google Sans',sans-serif", fontWeight:700,
+                background: isDark ? `linear-gradient(135deg, #06b6d4, #d4ff00)` : `linear-gradient(135deg, #004e5c, #536600)`,
+                color: isDark ? '#0A0A12' : '#ffffff',
+                boxShadow: isDark ? '0 4px 20px rgba(6,182,212,0.25)' : 'none',
+                '&:hover':{ boxShadow: isDark ? '0 6px 28px rgba(212,255,0,0.3)' : 'none', transform:'translateY(-1px)' },
               }}
             >
-              View My Dashboard →
+              Track My Application
             </Button>
             <Button
-              variant="outlined"
-              size="large"
+              fullWidth variant="outlined" size="large"
+              startIcon={<PersonAddIcon />}
               onClick={() => navigate('/athelete/register')}
               sx={{
-                borderRadius: 3,
-                px: 4,
-                borderColor: theme.palette.divider,
-                color: 'text.secondary',
-                '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                borderRadius:'12px', py:1.4,
+                fontFamily:"'Google Sans',sans-serif", fontWeight:600,
+                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+                color: textSec,
+                '&:hover':{ borderColor: isDark ? 'rgba(212,255,0,0.4)' : 'rgba(83,102,0,0.4)', color: LIME },
               }}
             >
-              Register Another
+              Register Another Athlete
             </Button>
           </Box>
-
-          <Typography variant="caption" sx={{ display: 'block', mt: 4, color: 'text.secondary', opacity: 0.5 }}>
-            <Box component="span" sx={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
-              ← Back to Home
-            </Box>
-          </Typography>
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 }
