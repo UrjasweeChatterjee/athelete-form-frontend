@@ -469,7 +469,7 @@ export default function CoachDashboard() {
                 theme={theme}
                 isDark={isDark}
                 actionLoading={actionLoading}
-                onView={(id) => navigate(`/coach/student/${id}`)}
+                onView={(id) => navigate(`/coach/athelete/${id}`)}
                 onApprove={openApprove}
                 onReject={openReject}
               />

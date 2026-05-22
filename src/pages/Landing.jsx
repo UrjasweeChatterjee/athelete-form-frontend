@@ -24,7 +24,7 @@ export default function Landing() {
       label:    'REGISTER AS ATHLETE',
       sublabel: 'Start your athletic journey today',
       icon:     PersonAddAltIcon,
-      path:     '/student/register',
+      path:     '/athelete/register',
       accent:   theme.palette.primary.main,
       tag:      'New Registration',
       stats:    [{ value: '8+', label: 'Sports' }, { value: '6', label: 'Steps' }, { value: 'Free', label: 'Entry' }],
@@ -34,7 +34,7 @@ export default function Landing() {
       label:    'ATHLETE LOGIN',
       sublabel: 'Track your application & profile',
       icon:     LoginIcon,
-      path:     '/student/login',
+      path:     '/athelete/login',
       accent:   '#22c55e',
       tag:      'Athlete Portal',
       stats:    [{ value: '24/7', label: 'Access' }, { value: 'Live', label: 'Status' }, { value: 'Free', label: 'Entry' }],
@@ -264,7 +264,7 @@ export default function Landing() {
               <Typography
                 key={link}
                 variant="caption"
-                onClick={() => navigate(i === 0 ? '/student/login' : '/coach/login')}
+                onClick={() => navigate(i === 0 ? '/athelete/login' : '/coach/login')}
                 sx={{
                   color: 'text.secondary',
                   cursor: 'pointer',

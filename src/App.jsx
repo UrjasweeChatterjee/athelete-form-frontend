@@ -6,14 +6,14 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeContextProvider } from './context/ThemeContext';
 
 // Pages
-import Landing         from './pages/Landing';
-import StudentRegister from './pages/StudentRegister.jsx';
-import StudentLogin    from './pages/StudentLogin.jsx';
-import StudentDashboard from './pages/StudentDashboard.jsx';
-import Success         from './pages/Success.jsx';
-import CoachLogin      from './pages/CoachLogin.jsx';
-import CoachDashboard  from './pages/CoachDashboard.jsx';
-import StudentProfile  from './pages/StudentProfile.jsx';
+import Landing from './pages/Landing';
+import AtheleteRegister from './pages/AtheleteRegister.jsx';
+import AtheleteLogin from './pages/AtheleteLogin.jsx';
+import AtheleteDashboard from './pages/AtheleteDashboard.jsx';
+import Success from './pages/Success.jsx';
+import CoachLogin from './pages/CoachLogin.jsx';
+import CoachDashboard from './pages/CoachDashboard.jsx';
+import AtheleteProfile from './pages/AtheleteProfile.jsx';
 
 function App() {
   return (
@@ -21,18 +21,18 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Landing */}
-          <Route path="/"                    element={<Landing />} />
+          <Route path="/" element={<Landing />} />
 
-          {/* Student routes */}
-          <Route path="/student/register"  element={<StudentRegister />} />
-          <Route path="/student/login"     element={<StudentLogin />} />
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/success"           element={<Success />} />
+          {/* Athlete routes */}
+          <Route path="/athelete/register"  element={<AtheleteRegister />} />
+          <Route path="/athelete/login"     element={<AtheleteLogin />} />
+          <Route path="/athelete/dashboard" element={<AtheleteDashboard />} />
+          <Route path="/success"            element={<Success />} />
 
           {/* Coach / Admin routes */}
-          <Route path="/coach/login"       element={<CoachLogin />} />
-          <Route path="/coach/dashboard"   element={<CoachDashboard />} />
-          <Route path="/coach/student/:id" element={<StudentProfile />} />
+          <Route path="/coach/login"          element={<CoachLogin />} />
+          <Route path="/coach/dashboard"      element={<CoachDashboard />} />
+          <Route path="/coach/athelete/:id"   element={<AtheleteProfile />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

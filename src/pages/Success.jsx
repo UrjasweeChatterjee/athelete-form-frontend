@@ -102,7 +102,7 @@ export default function Success() {
             <Button
               variant="contained"
               size="large"
-              onClick={() => navigate('/student/login')}
+              onClick={() => navigate('/athelete/login')}
               sx={{
                 borderRadius: 3,
                 px: 4,
@@ -116,7 +116,7 @@ export default function Success() {
             <Button
               variant="outlined"
               size="large"
-              onClick={() => navigate('/student/register')}
+              onClick={() => navigate('/athelete/register')}
               sx={{
                 borderRadius: 3,
                 px: 4,

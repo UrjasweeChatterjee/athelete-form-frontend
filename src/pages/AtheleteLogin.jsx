@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// pages/StudentLogin.jsx  –  Dark + lime green athlete login
+// pages/AtheleteLogin.jsx  –  Dark + lime green athlete login
 // ─────────────────────────────────────────────────────────────
 import React, { useState } from 'react';
 import {
@@ -11,7 +11,7 @@ import axios from 'axios';
 import ThemeToggle from '../components/ThemeToggle';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 
-export default function StudentLogin() {
+export default function AtheleteLogin() {
   const navigate = useNavigate();
   const theme    = useTheme();
   const isDark   = theme.palette.mode === 'dark';
@@ -42,7 +42,7 @@ export default function StudentLogin() {
     try {
       const { data } = await axios.post('/api/students/login', form);
       localStorage.setItem('student', JSON.stringify(data.student));
-      navigate('/student/dashboard');
+      navigate('/athelete/dashboard');
     } catch (err) {
       setApiError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -161,7 +161,7 @@ export default function StudentLogin() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, textAlign: 'center' }}>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               New athlete?{' '}
-              <Link to="/student/register" style={{ color: theme.palette.primary.main, fontWeight: 700, textDecoration: 'none' }}>
+              <Link to="/athelete/register" style={{ color: theme.palette.primary.main, fontWeight: 700, textDecoration: 'none' }}>
                 Register here →
               </Link>
             </Typography>

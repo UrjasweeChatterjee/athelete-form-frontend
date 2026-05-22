@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// pages/StudentDashboard.jsx  –  Ticket card style (dark+lime)
+// pages/AtheleteDashboard.jsx  –  Ticket card style (dark+lime)
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import {
@@ -9,47 +9,47 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { STATUS_COLORS } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
-import PhoneIcon        from '@mui/icons-material/Phone';
+import PhoneIcon from '@mui/icons-material/Phone';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import LocationOnIcon   from '@mui/icons-material/LocationOn';
-import EmojiEventsIcon  from '@mui/icons-material/EmojiEvents';
-import PeopleIcon       from '@mui/icons-material/People';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import PeopleIcon from '@mui/icons-material/People';
 
 // Use shared status colors from ThemeContext
 const STATUS_CONFIG = {
   ...STATUS_COLORS,
-  Pending:  { ...STATUS_COLORS.Pending,  icon: '⏳', label: 'PENDING'  },
+  Pending: { ...STATUS_COLORS.Pending, icon: '⏳', label: 'PENDING' },
   Approved: { ...STATUS_COLORS.Approved, icon: '✅', label: 'APPROVED' },
   Rejected: { ...STATUS_COLORS.Rejected, icon: '❌', label: 'REJECTED' },
 };
 
 const SPORT_EMOJIS = {
-  Cricket:'🏏', Football:'⚽', Badminton:'🏸', Athletics:'🏃',
-  Swimming:'🏊', Basketball:'🏀', Volleyball:'🏐', 'Table Tennis':'🏓',
+  Cricket: '🏏', Football: '⚽', Badminton: '🏸', Athletics: '🏃',
+  Swimming: '🏊', Basketball: '🏀', Volleyball: '🏐', 'Table Tennis': '🏓',
 };
 
-export default function StudentDashboard() {
+export default function AtheleteDashboard() {
   const navigate = useNavigate();
-  const theme    = useTheme();
-  const isDark   = theme.palette.mode === 'dark';
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   const [student, setStudent] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('student');
-    if (!stored) { navigate('/student/login'); return; }
+    if (!stored) { navigate('/athelete/login'); return; }
     setStudent(JSON.parse(stored));
   }, [navigate]);
 
   const handleLogout = () => { localStorage.removeItem('student'); navigate('/'); };
-  const parseSports  = (raw) => { try { return JSON.parse(raw); } catch { return raw ? [raw] : []; } };
+  const parseSports = (raw) => { try { return JSON.parse(raw); } catch { return raw ? [raw] : []; } };
 
   if (!student) return null;
 
-  const sports     = parseSports(student.sports_applied);
-  const statusCfg  = STATUS_CONFIG[student.status] || STATUS_CONFIG.Pending;
+  const sports = parseSports(student.sports_applied);
+  const statusCfg = STATUS_CONFIG[student.status] || STATUS_CONFIG.Pending;
   const registered = student.created_at
-    ? new Date(student.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })
+    ? new Date(student.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
 
   const cardBg = isDark ? '#111827' : '#FFFFFF';
@@ -197,8 +197,8 @@ export default function StudentDashboard() {
                 </Typography>
                 {[
                   { icon: <CalendarTodayIcon sx={{ fontSize: 14 }} />, label: 'Date of Birth', value: `${student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : '—'}${student.age ? ` · Age ${student.age}` : ''}` },
-                  { icon: <PhoneIcon sx={{ fontSize: 14 }} />,         label: 'Mobile',        value: student.mobile || '—' },
-                  { icon: <PeopleIcon sx={{ fontSize: 14 }} />,        label: 'Gender',        value: student.gender || '—' },
+                  { icon: <PhoneIcon sx={{ fontSize: 14 }} />, label: 'Mobile', value: student.mobile || '—' },
+                  { icon: <PeopleIcon sx={{ fontSize: 14 }} />, label: 'Gender', value: student.gender || '—' },
                 ].map(({ icon, label, value }) => (
                   <Box key={label} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
                     <Box sx={{ color: 'text.secondary', mt: 0.3 }}>{icon}</Box>
@@ -218,9 +218,9 @@ export default function StudentDashboard() {
                   COMPETITION INFO
                 </Typography>
                 {[
-                  { icon: <EmojiEventsIcon sx={{ fontSize: 14 }} />,  label: 'Competition',  value: student.competition_name || '—' },
-                  { icon: <EmojiEventsIcon sx={{ fontSize: 14 }} />,  label: 'Age Group',    value: student.age_group || '—' },
-                  { icon: <LocationOnIcon sx={{ fontSize: 14 }} />,   label: 'Club / State', value: [student.club_name, student.state_association].filter(Boolean).join(' · ') || '—' },
+                  { icon: <EmojiEventsIcon sx={{ fontSize: 14 }} />, label: 'Competition', value: student.competition_name || '—' },
+                  { icon: <EmojiEventsIcon sx={{ fontSize: 14 }} />, label: 'Age Group', value: student.age_group || '—' },
+                  { icon: <LocationOnIcon sx={{ fontSize: 14 }} />, label: 'Club / State', value: [student.club_name, student.state_association].filter(Boolean).join(' · ') || '—' },
                 ].map(({ icon, label, value }) => (
                   <Box key={label} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 2 }}>
                     <Box sx={{ color: 'text.secondary', mt: 0.3 }}>{icon}</Box>

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// pages/StudentRegister.jsx  –  6-step Athlete Registration
+// pages/AtheleteRegister.jsx  –  6-step Athlete Registration
 // Revamped: sport cards, premium stepper, dark/light support
 // ─────────────────────────────────────────────────────────────
 import React, { useState } from 'react';
@@ -15,23 +15,23 @@ import Navbar from '../components/Navbar';
 
 // ── Sport icons mapping ───────────────────────────────────────
 const SPORTS_LIST = [
-  { name: 'Cricket',      emoji: '🏏', color: '#E17055' },
-  { name: 'Football',     emoji: '⚽', color: '#6C5CE7' },
-  { name: 'Badminton',    emoji: '🏸', color: '#00CEC9' },
-  { name: 'Athletics',    emoji: '🏃', color: '#FDCB6E' },
-  { name: 'Swimming',     emoji: '🏊', color: '#0984E3' },
-  { name: 'Basketball',   emoji: '🏀', color: '#E17055' },
-  { name: 'Volleyball',   emoji: '🏐', color: '#A29BFE' },
+  { name: 'Cricket', emoji: '🏏', color: '#E17055' },
+  { name: 'Football', emoji: '⚽', color: '#6C5CE7' },
+  { name: 'Badminton', emoji: '🏸', color: '#00CEC9' },
+  { name: 'Athletics', emoji: '🏃', color: '#FDCB6E' },
+  { name: 'Swimming', emoji: '🏊', color: '#0984E3' },
+  { name: 'Basketball', emoji: '🏀', color: '#E17055' },
+  { name: 'Volleyball', emoji: '🏐', color: '#A29BFE' },
   { name: 'Table Tennis', emoji: '🏓', color: '#00B894' },
 ];
 
 const STEPS = [
-  { label: 'Personal',   emoji: '👤' },
-  { label: 'Guardian',   emoji: '👨‍👩‍👦' },
-  { label: 'Address',    emoji: '📍' },
-  { label: 'Club',       emoji: '🏆' },
-  { label: 'Sports',     emoji: '⚽' },
-  { label: 'Documents',  emoji: '📄' },
+  { label: 'Personal', emoji: '👤' },
+  { label: 'Guardian', emoji: '👨‍👩‍👦' },
+  { label: 'Address', emoji: '📍' },
+  { label: 'Club', emoji: '🏆' },
+  { label: 'Sports', emoji: '⚽' },
+  { label: 'Documents', emoji: '📄' },
 ];
 
 const calcAge = (dob) => {
@@ -53,16 +53,16 @@ const INITIAL_FORM = {
   photo: null, birth_certificate: null, id_proof: null,
 };
 
-export default function StudentRegister() {
+export default function AtheleteRegister() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
   const [activeStep, setActiveStep] = useState(0);
-  const [form, setForm]             = useState(INITIAL_FORM);
-  const [errors, setErrors]         = useState({});
-  const [loading, setLoading]       = useState(false);
-  const [apiError, setApiError]     = useState('');
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
 
   const progress = ((activeStep) / (STEPS.length - 1)) * 100;
 
@@ -133,15 +133,15 @@ export default function StudentRegister() {
     setApiError('');
     try {
       const formData = new FormData();
-      ['full_name','dob','age','gender','mobile','email','password',
-       'guardian_name','guardian_mobile','relation',
-       'address','city','state','pincode',
-       'club_name','state_association','competition_name','age_group',
+      ['full_name', 'dob', 'age', 'gender', 'mobile', 'email', 'password',
+        'guardian_name', 'guardian_mobile', 'relation',
+        'address', 'city', 'state', 'pincode',
+        'club_name', 'state_association', 'competition_name', 'age_group',
       ].forEach(f => formData.append(f, form[f] || ''));
       formData.append('sports_applied', JSON.stringify(form.sports_applied));
-      if (form.photo)             formData.append('photo',             form.photo);
+      if (form.photo) formData.append('photo', form.photo);
       if (form.birth_certificate) formData.append('birth_certificate', form.birth_certificate);
-      if (form.id_proof)          formData.append('id_proof',          form.id_proof);
+      if (form.id_proof) formData.append('id_proof', form.id_proof);
 
       await axios.post('/api/students/register', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -389,9 +389,9 @@ export default function StudentRegister() {
             </Alert>
           </Grid>
           {[
-            { name: 'photo',             label: 'Athlete Photo',           emoji: '🤳', accept: 'image/jpeg,image/png' },
-            { name: 'birth_certificate', label: 'Birth Certificate',       emoji: '📜', accept: 'image/jpeg,image/png,application/pdf' },
-            { name: 'id_proof',          label: 'ID Proof',                emoji: '🪪', accept: 'image/jpeg,image/png,application/pdf' },
+            { name: 'photo', label: 'Athlete Photo', emoji: '🤳', accept: 'image/jpeg,image/png' },
+            { name: 'birth_certificate', label: 'Birth Certificate', emoji: '📜', accept: 'image/jpeg,image/png,application/pdf' },
+            { name: 'id_proof', label: 'ID Proof', emoji: '🪪', accept: 'image/jpeg,image/png,application/pdf' },
           ].map(({ name, label, emoji, accept }) => (
             <Grid item xs={12} sm={4} key={name}>
               <Box
@@ -409,8 +409,8 @@ export default function StudentRegister() {
                   borderColor: form[name]
                     ? theme.palette.success.main
                     : errors[name]
-                    ? theme.palette.error.main
-                    : alpha(theme.palette.primary.main, 0.4),
+                      ? theme.palette.error.main
+                      : alpha(theme.palette.primary.main, 0.4),
                   bgcolor: form[name]
                     ? alpha(theme.palette.success.main, 0.06)
                     : isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02),
@@ -513,8 +513,8 @@ export default function StudentRegister() {
                     bgcolor: done
                       ? theme.palette.success.main
                       : active
-                      ? theme.palette.primary.main
-                      : isDark ? alpha('#fff', 0.08) : alpha('#000', 0.06),
+                        ? theme.palette.primary.main
+                        : isDark ? alpha('#fff', 0.08) : alpha('#000', 0.06),
                     boxShadow: active ? `0 0 0 4px ${alpha(theme.palette.primary.main, 0.25)}` : 'none',
                     color: done ? '#fff' : active ? '#fff' : 'text.secondary',
                     fontWeight: 700,

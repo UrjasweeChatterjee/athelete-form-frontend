@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// pages/StudentProfile.jsx  –  Full profile for Coach (revamped)
+// pages/AtheleteProfile.jsx  –  Full profile for Coach (revamped)
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import {
@@ -63,7 +63,7 @@ function SectionCard({ icon, title, children, theme, isDark }) {
   );
 }
 
-export default function StudentProfile() {
+export default function AtheleteProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
