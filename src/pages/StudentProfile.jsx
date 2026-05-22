@@ -9,18 +9,18 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
-import ArrowBackIcon    from '@mui/icons-material/ArrowBack';
-import PersonIcon       from '@mui/icons-material/Person';
-import FamilyIcon       from '@mui/icons-material/FamilyRestroom';
-import LocationOnIcon   from '@mui/icons-material/LocationOn';
-import SportsIcon       from '@mui/icons-material/Sports';
-import ArticleIcon      from '@mui/icons-material/Article';
-import GroupsIcon       from '@mui/icons-material/Groups';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PersonIcon from '@mui/icons-material/Person';
+import FamilyIcon from '@mui/icons-material/FamilyRestroom';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import SportsIcon from '@mui/icons-material/Sports';
+import ArticleIcon from '@mui/icons-material/Article';
+import GroupsIcon from '@mui/icons-material/Groups';
 
 const STATUS_CONFIG = {
-  Pending:  { color: '#FDCB6E', bg: 'rgba(253,203,110,0.12)', border: 'rgba(253,203,110,0.4)' },
-  Approved: { color: '#00B894', bg: 'rgba(0,184,148,0.12)',   border: 'rgba(0,184,148,0.4)'   },
-  Rejected: { color: '#E17055', bg: 'rgba(225,112,85,0.12)',  border: 'rgba(225,112,85,0.4)'  },
+  Pending: { color: '#FDCB6E', bg: 'rgba(253,203,110,0.12)', border: 'rgba(253,203,110,0.4)' },
+  Approved: { color: '#00B894', bg: 'rgba(0,184,148,0.12)', border: 'rgba(0,184,148,0.4)' },
+  Rejected: { color: '#E17055', bg: 'rgba(225,112,85,0.12)', border: 'rgba(225,112,85,0.4)' },
 };
 
 const SPORT_EMOJIS = {
@@ -71,7 +71,7 @@ export default function StudentProfile() {
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!localStorage.getItem('coach')) navigate('/coach/login');
@@ -113,7 +113,7 @@ export default function StudentProfile() {
   })();
 
   const statusCfg = STATUS_CONFIG[student.status] || STATUS_CONFIG.Pending;
-  const fileUrl = (path) => path ? `http://localhost:5001/${path}` : null;
+  const fileUrl = (path) => path ? `http://localhost:5002/${path}` : null;
 
   // Initials
   const initials = student.full_name
@@ -195,38 +195,38 @@ export default function StudentProfile() {
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <SectionCard icon={<PersonIcon sx={{ color: 'primary.main' }} />} title="Personal Details" theme={theme} isDark={isDark}>
-              <InfoRow label="Full Name"     value={student.full_name} />
+              <InfoRow label="Full Name" value={student.full_name} />
               <InfoRow label="Date of Birth" value={student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : ''} />
-              <InfoRow label="Age"           value={student.age} />
-              <InfoRow label="Gender"        value={student.gender} />
-              <InfoRow label="Mobile"        value={student.mobile} />
-              <InfoRow label="Email"         value={student.email} />
+              <InfoRow label="Age" value={student.age} />
+              <InfoRow label="Gender" value={student.gender} />
+              <InfoRow label="Mobile" value={student.mobile} />
+              <InfoRow label="Email" value={student.email} />
             </SectionCard>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <SectionCard icon={<FamilyIcon sx={{ color: 'secondary.main' }} />} title="Guardian Details" theme={theme} isDark={isDark}>
-              <InfoRow label="Guardian Name"   value={student.guardian_name} />
+              <InfoRow label="Guardian Name" value={student.guardian_name} />
               <InfoRow label="Guardian Mobile" value={student.guardian_mobile} />
-              <InfoRow label="Relation"        value={student.relation} />
+              <InfoRow label="Relation" value={student.relation} />
             </SectionCard>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <SectionCard icon={<LocationOnIcon sx={{ color: '#E17055' }} />} title="Address Details" theme={theme} isDark={isDark}>
               <InfoRow label="Address" value={student.address} />
-              <InfoRow label="City"    value={student.city} />
-              <InfoRow label="State"   value={student.state} />
+              <InfoRow label="City" value={student.city} />
+              <InfoRow label="State" value={student.state} />
               <InfoRow label="Pincode" value={student.pincode} />
             </SectionCard>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <SectionCard icon={<GroupsIcon sx={{ color: '#6C5CE7' }} />} title="Club / State Details" theme={theme} isDark={isDark}>
-              <InfoRow label="Club Name"        value={student.club_name} />
+              <InfoRow label="Club Name" value={student.club_name} />
               <InfoRow label="State Association" value={student.state_association} />
-              <InfoRow label="Competition"      value={student.competition_name} />
-              <InfoRow label="Age Group"        value={student.age_group} />
+              <InfoRow label="Competition" value={student.competition_name} />
+              <InfoRow label="Age Group" value={student.age_group} />
             </SectionCard>
           </Grid>
 
@@ -259,9 +259,9 @@ export default function StudentProfile() {
             <SectionCard icon={<ArticleIcon sx={{ color: '#0984E3' }} />} title="Documents" theme={theme} isDark={isDark}>
               <Grid container spacing={2}>
                 {[
-                  { key: 'photo',             label: 'Athlete Photo',    emoji: '🤳' },
+                  { key: 'photo', label: 'Athlete Photo', emoji: '🤳' },
                   { key: 'birth_certificate', label: 'Birth Certificate', emoji: '📜' },
-                  { key: 'id_proof',          label: 'ID Proof',         emoji: '🪪' },
+                  { key: 'id_proof', label: 'ID Proof', emoji: '🪪' },
                 ].map(({ key, label, emoji }) => {
                   const url = fileUrl(student[key]);
                   return (
