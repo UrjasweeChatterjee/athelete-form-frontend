@@ -4,6 +4,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeContextProvider } from './context/ThemeContext';
+import axios from 'axios';
+
+// Dynamically configure Axios Base URL for hosted production environments
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || '';
 
 // Pages
 import Landing from './pages/Landing';
