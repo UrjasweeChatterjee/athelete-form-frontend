@@ -114,7 +114,7 @@ export default function CoachLogin() {
           </Box>
 
           {/* Demo credentials hint */}
-          <Box sx={{
+          {/* <Box sx={{
             bgcolor: isDark ? 'rgba(99,102,241,0.07)' : 'rgba(47,46,190,0.05)',
             border: `1px solid ${isDark ? 'rgba(99,102,241,0.2)' : 'rgba(47,46,190,0.15)'}`,
             borderRadius: '12px', p: 2, mb: 3,
@@ -136,7 +136,7 @@ export default function CoachLogin() {
                 }} />
               ))}
             </Box>
-          </Box>
+          </Box> */}
 
           {/* Form */}
           <Box component="form" onSubmit={handleSubmit} noValidate>
