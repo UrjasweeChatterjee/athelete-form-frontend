@@ -77,6 +77,7 @@ export default function AtheleteRegister() {
     const { name, value } = e.target;
     setForm(p => ({ ...p, [name]: value, ...(name==='dob' ? { age: calcAge(value) } : {}) }));
     if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
+    setApiError('');
   };
   const toggleSport = (s) => {
     setForm(p => ({ ...p, sports_applied: p.sports_applied.includes(s) ? p.sports_applied.filter(x=>x!==s) : [...p.sports_applied,s] }));
@@ -114,7 +115,10 @@ export default function AtheleteRegister() {
   };
 
   const next = () => { if (validate()) setStep(p=>p+1); };
-  const back = () => setStep(p=>p-1);
+  const back = () => {
+    setApiError('');
+    setStep(p => p - 1);
+  };
 
   const submit = async () => {
     setLoading(true); setApiError('');

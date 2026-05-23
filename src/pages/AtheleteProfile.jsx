@@ -236,7 +236,7 @@ export default function AtheleteProfile() {
                   <Box key={doc} sx={{ mb: 1.5 }}>
                     <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, letterSpacing: '0.04em', display: 'block', mb: 0.5 }}>{labels[doc].toUpperCase()}</Typography>
                     {docUrl ? (
-                      <Button size="small" variant="outlined" href={`http://localhost:5002${docUrl}`} target="_blank" rel="noopener noreferrer"
+                      <Button size="small" variant="outlined" href={`http://localhost:5002/${docUrl.replace(/^\//, '')}`} target="_blank" rel="noopener noreferrer"
                         sx={{ borderRadius: '8px', fontSize: '0.75rem', fontFamily: "'Google Sans',sans-serif", fontWeight: 600, borderColor: isDark ? 'rgba(6,182,212,0.35)' : 'rgba(0,78,92,0.3)', color: CYAN, textTransform: 'none', '&:hover': { borderColor: CYAN } }}>
                         View Document ↗
                       </Button>
