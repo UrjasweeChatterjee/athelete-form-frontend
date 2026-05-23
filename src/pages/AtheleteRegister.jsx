@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Box, Typography, Button, TextField, Select, MenuItem,
   FormControl, InputLabel, FormHelperText, Alert, CircularProgress,
-  Grid, useTheme, alpha, Chip } from '@mui/material';
+  Grid, useTheme, alpha, Chip, IconButton } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
+import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
 
 const SPORTS = ['Cricket','Football','Badminton','Athletics','Swimming','Basketball','Volleyball','Table Tennis'];
@@ -360,9 +361,38 @@ export default function AtheleteRegister() {
               borderColor: form[name] ? '#34D399' : errors[name] ? '#ffb4ab' : (isDark ? 'rgba(6,182,212,0.35)' : 'rgba(0,78,92,0.3)'),
               bgcolor: form[name] ? 'rgba(52,211,153,0.06)' : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'),
               cursor:'pointer', transition:'all 0.25s ease',
+              position: 'relative',
               '&:hover':{ borderColor: CYAN, bgcolor: isDark ? 'rgba(6,182,212,0.08)' : 'rgba(0,78,92,0.05)', transform:'translateY(-2px)' },
             }}>
               <input id={`file-${name}`} type="file" name={name} accept={accept} hidden onChange={fileChange} />
+              {form[name] && (
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setForm(p => ({ ...p, [name]: null }));
+                    const inputEl = document.getElementById(`file-${name}`);
+                    if (inputEl) inputEl.value = '';
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    bgcolor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)',
+                    color: '#EF4444',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    '&:hover': {
+                      bgcolor: '#EF4444',
+                      color: '#ffffff',
+                      boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)',
+                    },
+                    zIndex: 2,
+                  }}
+                >
+                  <CloseIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
               <Typography sx={{ fontSize:36 }}>{form[name] ? '✅' : emoji}</Typography>
               <Typography variant="caption" sx={{ fontWeight:600, color:tPri, textAlign:'center', fontFamily:"'Google Sans',sans-serif" }}>{label}</Typography>
               <Typography variant="caption" sx={{ color:tSec, textAlign:'center', fontSize:'0.7rem', fontFamily:"'Google Sans',sans-serif" }}>
