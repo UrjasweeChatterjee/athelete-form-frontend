@@ -4,7 +4,7 @@ import {
   Box, Container, Typography, TextField, Button, Grid,
   Chip, CircularProgress, Alert, MenuItem, Select,
   InputAdornment, useTheme, alpha, Dialog, DialogTitle,
-  DialogContent, DialogActions, IconButton, Tooltip,
+  DialogContent, DialogActions, IconButton, Tooltip, Divider,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -21,6 +21,7 @@ import PendingIcon from '@mui/icons-material/Pending';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import BlockIcon from '@mui/icons-material/Block';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 const STATUS_CONFIG = {
   Pending: { color: '#FBBF24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)' },
@@ -121,6 +122,11 @@ export default function CoachDashboard() {
   const [exporting, setExporting] = useState(false);
   const [dialog, setDialog] = useState({ open: false, athleteId: null, status: '', name: '' });
 
+  // AI-Insights specific states
+  const [activeTab, setActiveTab] = useState('list'); // 'list' or 'ai'
+  const [aiInsights, setAiInsights] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const LIME = isDark ? '#d4ff00' : '#536600';
   const CYAN = isDark ? '#06b6d4' : '#004e5c';
   const INDIGO = '#6366f1';
@@ -144,6 +150,23 @@ export default function CoachDashboard() {
       setError('Failed to load athletes. Please refresh.');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchAiInsights = useCallback(async () => {
+    setAiLoading(true); setError('');
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.get('/api/coaches/ai-athlete-insights', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (data.success) {
+        setAiInsights({ insights: data.insights, summary: data.summary, disclaimer: data.disclaimer });
+      }
+    } catch {
+      setError('Failed to load AI Insights. Please try again.');
+    } finally {
+      setAiLoading(false);
     }
   }, []);
 
@@ -178,6 +201,9 @@ export default function CoachDashboard() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       await fetchAthletes();
+      if (activeTab === 'ai' || aiInsights) {
+        await fetchAiInsights();
+      }
     } catch (e) {
       setError(`Failed to update: ${e.response?.data?.message || 'Try again.'}`);
     } finally {
@@ -202,12 +228,207 @@ export default function CoachDashboard() {
 
   const handleLogout = () => { localStorage.removeItem('coach'); localStorage.removeItem('token'); navigate('/'); };
 
-  const statCards = [
-    { label: 'Total Athletes', value: stats.total || athletes.length, icon: GroupsIcon, color: CYAN },
-    { label: 'Pending', value: stats.pending || athletes.filter(a => a.status === 'Pending').length, icon: PendingIcon, color: '#FBBF24' },
-    { label: 'Approved', value: stats.approved || athletes.filter(a => a.status === 'Approved').length, icon: VerifiedIcon, color: isDark ? '#d4ff00' : '#536600' },
-    { label: 'Rejected', value: stats.rejected || athletes.filter(a => a.status === 'Rejected').length, icon: BlockIcon, color: '#ffb4ab' },
-  ];
+  const handleRefresh = () => {
+    if (activeTab === 'ai') {
+      fetchAiInsights();
+    } else {
+      fetchAthletes();
+    }
+  };
+
+  const statCards = activeTab === 'ai' && aiInsights
+    ? [
+        { label: 'Total Athletes', value: aiInsights.summary.totalAthletes, icon: GroupsIcon, color: CYAN },
+        { label: 'Strong Profiles', value: aiInsights.summary.strongProfiles, icon: VerifiedIcon, color: LIME },
+        { label: 'Needs Review', value: aiInsights.summary.needsReview, icon: PendingIcon, color: '#FBBF24' },
+        { label: 'Incomplete Profiles', value: aiInsights.summary.incompleteProfiles, icon: BlockIcon, color: '#ffb4ab' },
+      ]
+    : [
+        { label: 'Total Athletes', value: stats.total || athletes.length, icon: GroupsIcon, color: CYAN },
+        { label: 'Pending', value: stats.pending || athletes.filter(a => a.status === 'Pending').length, icon: PendingIcon, color: '#FBBF24' },
+        { label: 'Approved', value: stats.approved || athletes.filter(a => a.status === 'Approved').length, icon: VerifiedIcon, color: LIME },
+        { label: 'Rejected', value: stats.rejected || athletes.filter(a => a.status === 'Rejected').length, icon: BlockIcon, color: '#ffb4ab' },
+      ];
+
+  const renderAiInsightsList = () => {
+    if (aiLoading) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <CircularProgress sx={{ color: LIME }} />
+          <Typography sx={{ mt: 2, color: textSec, fontFamily: "'Google Sans',sans-serif" }}>Analyzing athlete profiles with AI…</Typography>
+        </Box>
+      );
+    }
+
+    if (!aiInsights || !aiInsights.insights) return null;
+
+    let list = aiInsights.insights;
+    if (search) {
+      list = list.filter(item =>
+        item.athleteName?.toLowerCase().includes(search.toLowerCase()) ||
+        item.sport?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, display: 'block' }}>
+          AI-generated assessment for {list.length} athletes
+        </Typography>
+
+        <Grid container spacing={3}>
+          {list.length === 0 ? (
+            <Grid item xs={12}>
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <Typography sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600 }}>
+                  No assessment results found
+                </Typography>
+              </Box>
+            </Grid>
+          ) : (
+            list.map(item => {
+              const sc = STATUS_CONFIG[item.currentStatus || item.status] || STATUS_CONFIG.Pending;
+              const staminaLevel = item.estimatedStaminaLevel || item.staminaLevel || '';
+              const staminaColor = staminaLevel.startsWith('High') ? LIME : staminaLevel.startsWith('Medium') ? '#FBBF24' : '#ffb4ab';
+              const strengths = item.strengths || [];
+              const improvementAreas = item.improvementAreas || [];
+              const documentIssues = item.documentIssues || [];
+              const approvalNote = item.approvalSupportNote || item.approvalSuggestion || item.coachSuggestion || '';
+              const athleteStatus = item.currentStatus || item.status || 'Pending';
+              return (
+                <Grid item xs={12} key={item.athleteId}>
+                  <Box sx={{
+                    bgcolor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                    border: `1px solid ${border}`, borderRadius: '24px', p: 3,
+                    backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+                    borderLeft: `4px solid ${item.qualityScore >= 80 ? LIME : item.qualityScore >= 60 ? CYAN : '#ffb4ab'}`,
+                    transition: 'all 0.25s ease',
+                    '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 12px 32px ${alpha(sc.color, 0.05)}` }
+                  }}>
+                    {/* Header Row */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
+                      <Box>
+                        <Typography variant="h6" sx={{ fontFamily: "'Google Sans Display',sans-serif", fontWeight: 800, color: textPri }}>
+                          {item.athleteName}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif" }}>
+                          ID: SCM-{String(item.athleteId).padStart(6, '0')} · {item.ageGroup} · {item.sport}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Chip label={`Quality: ${item.qualityScore}%`} size="small" sx={{ bgcolor: alpha(LIME, 0.1), color: LIME, border: `1px solid ${alpha(LIME, 0.3)}`, fontFamily: "'Google Sans',sans-serif", fontWeight: 700 }} />
+                        <Chip label={`Stamina: ${item.estimatedStaminaLevel || item.staminaLevel || 'Estimated'}`} size="small" sx={{ bgcolor: alpha(staminaColor, 0.1), color: staminaColor, border: `1px solid ${alpha(staminaColor, 0.3)}`, fontFamily: "'Google Sans',sans-serif", fontWeight: 700 }} />
+                        <Chip label={`Completeness: ${item.profileCompleteness}`} size="small" sx={{ bgcolor: alpha(CYAN, 0.1), color: CYAN, border: `1px solid ${alpha(CYAN, 0.3)}`, fontFamily: "'Google Sans',sans-serif", fontWeight: 700 }} />
+                      </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 2, borderColor: border }} />
+
+                    {/* Strengths & Improvements */}
+                    <Grid container spacing={2} sx={{ mb: documentIssues.length > 0 ? 2 : 2.5 }}>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="caption" sx={{ color: LIME, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, display: 'block', mb: 1, letterSpacing: '0.05em' }}>
+                          STRENGTHS
+                        </Typography>
+                        <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
+                          {strengths.map((str, idx) => (
+                            <li key={idx} style={{ color: textPri, fontSize: '0.85rem', fontFamily: "'Google Sans',sans-serif", marginBottom: '4px' }}>
+                              {str}
+                            </li>
+                          ))}
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="caption" sx={{ color: '#ffb4ab', fontFamily: "'Google Sans',sans-serif", fontWeight: 700, display: 'block', mb: 1, letterSpacing: '0.05em' }}>
+                          AREAS FOR IMPROVEMENT
+                        </Typography>
+                        <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
+                          {improvementAreas.map((imp, idx) => (
+                            <li key={idx} style={{ color: textPri, fontSize: '0.85rem', fontFamily: "'Google Sans',sans-serif", marginBottom: '4px' }}>
+                              {imp}
+                            </li>
+                          ))}
+                        </Box>
+                      </Grid>
+                    </Grid>
+
+                    {/* Document Issues (new AI field) */}
+                    {documentIssues.length > 0 && (
+                      <Box sx={{ bgcolor: isDark ? 'rgba(255,180,171,0.04)' : 'rgba(255,180,171,0.05)', border: `1px solid rgba(255,180,171,0.2)`, borderRadius: '12px', p: 2, mb: 2.5 }}>
+                        <Typography variant="caption" sx={{ color: '#ffb4ab', fontFamily: "'Google Sans',sans-serif", fontWeight: 700, display: 'block', mb: 1, letterSpacing: '0.05em' }}>📋 DOCUMENT ISSUES</Typography>
+                        <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
+                          {documentIssues.map((doc, idx) => (
+                            <li key={idx} style={{ color: textPri, fontSize: '0.85rem', fontFamily: "'Google Sans',sans-serif", marginBottom: '4px' }}>{doc}</li>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* AI Recommendation Alert */}
+                    <Box sx={{
+                      bgcolor: isDark ? 'rgba(6,182,212,0.03)' : 'rgba(0,78,92,0.02)',
+                      border: `1px dashed ${alpha(CYAN, 0.25)}`,
+                      borderRadius: '12px',
+                      p: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 2
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AutoAwesomeIcon sx={{ color: CYAN, fontSize: 16 }} />
+                        <Typography sx={{ color: textPri, fontSize: '0.85rem', fontFamily: "'Google Sans',sans-serif", fontWeight: 500 }}>
+                          <strong>AI Suggestion:</strong> {approvalNote}
+                        </Typography>
+                      </Box>
+
+                      {/* Quick Action inside Card */}
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          size="small"
+                          onClick={() => navigate(`/coach/athelete/${item.athleteId}`)}
+                          sx={{ color: textSec, textTransform: 'none', fontFamily: "'Google Sans',sans-serif", fontWeight: 600, fontSize: '0.78rem' }}
+                        >
+                          View Full Profile
+                        </Button>
+                        {athleteStatus === 'Pending' && (
+                          <>
+                            <Button
+                              size="small" variant="contained"
+                              disabled={actionLoading === item.athleteId}
+                              onClick={() => openApprove(item.athleteId, item.athleteName)}
+                              sx={{ bgcolor: LIME, color: '#0A0A12', textTransform: 'none', fontFamily: "'Google Sans',sans-serif", fontWeight: 700, borderRadius: '9999px', fontSize: '0.78rem', '&:hover': { bgcolor: alpha(LIME, 0.8) } }}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="small" variant="outlined"
+                              disabled={actionLoading === item.athleteId}
+                              onClick={() => openReject(item.athleteId, item.athleteName)}
+                              sx={{ borderColor: '#ffb4ab', color: '#ffb4ab', textTransform: 'none', fontFamily: "'Google Sans',sans-serif", fontWeight: 700, borderRadius: '9999px', fontSize: '0.78rem', '&:hover': { bgcolor: 'rgba(255,180,171,0.05)', borderColor: '#ffb4ab' } }}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </Box>
+                    </Box>
+                  </Box>
+                </Grid>
+              );
+            })
+          )}
+        </Grid>
+
+        {aiInsights.disclaimer && (
+          <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", display: 'block', textAlign: 'center', mt: 2, borderTop: `1px solid ${border}`, pt: 2 }}>
+            ⚠️ {aiInsights.disclaimer}
+          </Typography>
+        )}
+      </Box>
+    );
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: bg, position: 'relative' }}>
@@ -231,7 +452,7 @@ export default function CoachDashboard() {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <Button size="small" startIcon={<RefreshIcon />} onClick={fetchAthletes} sx={{ borderRadius: '9999px', borderColor: border, color: textSec, border: `1px solid ${border}`, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, '&:hover': { borderColor: CYAN, color: CYAN } }}>
+            <Button size="small" startIcon={<RefreshIcon />} onClick={handleRefresh} sx={{ borderRadius: '9999px', borderColor: border, color: textSec, border: `1px solid ${border}`, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, '&:hover': { borderColor: CYAN, color: CYAN } }}>
               Refresh
             </Button>
             <Button size="small" startIcon={exporting ? <CircularProgress size={13} sx={{ color: '#0A0A12' }} /> : <FileDownloadIcon />} onClick={handleExport} disabled={exporting}
@@ -244,12 +465,53 @@ export default function CoachDashboard() {
           </Box>
         </Box>
 
+        {/* Toggle View Mode */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <Button
+            onClick={() => setActiveTab('list')}
+            variant={activeTab === 'list' ? 'contained' : 'outlined'}
+            sx={{
+              borderRadius: '9999px',
+              fontFamily: "'Google Sans',sans-serif",
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              bgcolor: activeTab === 'list' ? CYAN : 'transparent',
+              color: activeTab === 'list' ? (isDark ? '#0A0A12' : '#ffffff') : CYAN,
+              borderColor: CYAN,
+              '&:hover': { bgcolor: activeTab === 'list' ? alpha(CYAN, 0.8) : alpha(CYAN, 0.05) }
+            }}
+          >
+            List View
+          </Button>
+          <Button
+            onClick={() => {
+              setActiveTab('ai');
+              if (!aiInsights) fetchAiInsights();
+            }}
+            variant={activeTab === 'ai' ? 'contained' : 'outlined'}
+            startIcon={<AutoAwesomeIcon />}
+            sx={{
+              borderRadius: '9999px',
+              fontFamily: "'Google Sans',sans-serif",
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              bgcolor: activeTab === 'ai' ? LIME : 'transparent',
+              color: activeTab === 'ai' ? '#0A0A12' : LIME,
+              borderColor: LIME,
+              boxShadow: activeTab === 'ai' && isDark ? '0 0 16px rgba(212,255,0,0.25)' : 'none',
+              '&:hover': { bgcolor: activeTab === 'ai' ? alpha(LIME, 0.8) : alpha(LIME, 0.05) }
+            }}
+          >
+            AI Athlete Insights
+          </Button>
+        </Box>
+
         {/* ── Stat Cards ─────────────────────────────────────── */}
         <Grid container spacing={2.5} sx={{ mb: 4 }}>
           {statCards.map(({ label, value, icon: Icon, color }) => (
             <Grid item xs={6} md={3} key={label}>
               <Box sx={{ bgcolor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '20px', p: 2.5, backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', mb: 1 }}>
                   <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: alpha(color, 0.1), border: `1px solid ${alpha(color, 0.2)}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon sx={{ fontSize: 18, color }} />
                   </Box>
@@ -270,7 +532,8 @@ export default function CoachDashboard() {
         {/* ── Search + Filter ────────────────────────────────── */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           <TextField
-            placeholder="Search athletes…" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={activeTab === 'ai' ? "Search AI Insights…" : "Search athletes…"}
+            value={search} onChange={e => setSearch(e.target.value)}
             size="small"
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18, color: textSec }} /></InputAdornment> }}
             sx={{
@@ -278,50 +541,56 @@ export default function CoachDashboard() {
               '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', fontFamily: "'Google Sans',sans-serif" }
             }}
           />
-          <Select value={filter} onChange={e => setFilter(e.target.value)} size="small"
-            startAdornment={<FilterListIcon sx={{ fontSize: 16, color: textSec, mr: 0.5 }} />}
-            sx={{ minWidth: 140, borderRadius: '12px', bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', fontFamily: "'Google Sans',sans-serif", fontWeight: 600, color: textPri }}>
-            {['All', 'Pending', 'Approved', 'Rejected'].map(s => <MenuItem key={s} value={s} sx={{ fontFamily: "'Google Sans',sans-serif" }}>{s}</MenuItem>)}
-          </Select>
+          {activeTab === 'list' && (
+            <Select value={filter} onChange={e => setFilter(e.target.value)} size="small"
+              startAdornment={<FilterListIcon sx={{ fontSize: 16, color: textSec, mr: 0.5 }} />}
+              sx={{ minWidth: 140, borderRadius: '12px', bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', fontFamily: "'Google Sans',sans-serif", fontWeight: 600, color: textPri }}>
+              {['All', 'Pending', 'Approved', 'Rejected'].map(s => <MenuItem key={s} value={s} sx={{ fontFamily: "'Google Sans',sans-serif" }}>{s}</MenuItem>)}
+            </Select>
+          )}
         </Box>
 
-        {/* ── Athletes List ─────────────────────────────────── */}
-        {loading ? (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <CircularProgress sx={{ color: CYAN }} />
-            <Typography sx={{ mt: 2, color: textSec, fontFamily: "'Google Sans',sans-serif" }}>Loading athlete data…</Typography>
-          </Box>
+        {/* ── Main View Panel ─────────────────────────────────── */}
+        {activeTab === 'ai' ? (
+          renderAiInsightsList()
         ) : (
-          <>
-            <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, display: 'block', mb: 2 }}>
-              Showing {filtered.length} of {athletes.length} athletes
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {filtered.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <Typography variant="h5" sx={{ mb: 1, color: textSec, fontFamily: "'Google Sans',sans-serif" }}>
-                    {athletes.length === 0 ? '🚀' : '🔍'}
-                  </Typography>
-                  <Typography sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600 }}>
-                    {athletes.length === 0 ? 'No registrations yet' : 'No results found'}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: textSec, mt: 0.5, fontFamily: "'Google Sans',sans-serif" }}>
-                    {athletes.length === 0 ? 'Athlete registrations will appear here.' : 'Try adjusting search or filter.'}
-                  </Typography>
-                </Box>
-              ) : (
-                filtered.map(athlete => (
-                  <AthleteCard
-                    key={athlete.id} athlete={athlete}
-                    onView={id => navigate(`/coach/athelete/${id}`)}
-                    onApprove={openApprove} onReject={openReject}
-                    actionLoading={actionLoading}
-                    isDark={isDark} cardBg={cardBg} border={border} textPri={textPri} textSec={textSec}
-                  />
-                ))
-              )}
+          loading ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <CircularProgress sx={{ color: CYAN }} />
+              <Typography sx={{ mt: 2, color: textSec, fontFamily: "'Google Sans',sans-serif" }}>Loading athlete data…</Typography>
             </Box>
-          </>
+          ) : (
+            <>
+              <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, display: 'block', mb: 2 }}>
+                Showing {filtered.length} of {athletes.length} athletes
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {filtered.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <Typography variant="h5" sx={{ mb: 1, color: textSec, fontFamily: "'Google Sans',sans-serif" }}>
+                      {athletes.length === 0 ? '🚀' : '🔍'}
+                    </Typography>
+                    <Typography sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600 }}>
+                      {athletes.length === 0 ? 'No registrations yet' : 'No results found'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: textSec, mt: 0.5, fontFamily: "'Google Sans',sans-serif" }}>
+                      {athletes.length === 0 ? 'Athlete registrations will appear here.' : 'Try adjusting search or filter.'}
+                    </Typography>
+                  </Box>
+                ) : (
+                  filtered.map(athlete => (
+                    <AthleteCard
+                      key={athlete.id} athlete={athlete}
+                      onView={id => navigate(`/coach/athelete/${id}`)}
+                      onApprove={openApprove} onReject={openReject}
+                      actionLoading={actionLoading}
+                      isDark={isDark} cardBg={cardBg} border={border} textPri={textPri} textSec={textSec}
+                    />
+                  ))
+                )}
+              </Box>
+            </>
+          )
         )}
       </Container>
 

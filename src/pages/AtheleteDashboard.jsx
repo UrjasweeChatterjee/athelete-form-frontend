@@ -1,7 +1,8 @@
 // pages/AtheleteDashboard.jsx  –  Stitch "Digital ID" Design
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, Chip, Grid, useTheme, alpha, Divider, Button } from '@mui/material';
+import { Box, Container, Typography, Chip, Grid, useTheme, alpha, Divider, Button, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { STATUS_COLORS } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -11,6 +12,26 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import PeopleIcon from '@mui/icons-material/People';
 import LogoutIcon from '@mui/icons-material/Logout';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+
+const renderList = (data, textPri) => {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    return (
+      <Box component="ul" sx={{ pl: 2, m: 0, '& li': { mb: 0.5, color: textPri, fontFamily: "'Google Sans',sans-serif", fontSize: '0.88rem' } }}>
+        {data.map((item, idx) => (
+          <li key={idx}>{item}</li>
+        ))}
+      </Box>
+    );
+  }
+  return (
+    <Typography sx={{ color: textPri, fontFamily: "'Google Sans',sans-serif", fontSize: '0.88rem' }}>
+      {data}
+    </Typography>
+  );
+};
+
 
 const STATUS_CONFIG = {
   Pending:  { ...STATUS_COLORS.Pending,  icon: '⏳', label: 'PENDING REVIEW'  },
@@ -29,6 +50,9 @@ export default function AtheleteDashboard() {
   const isDark   = theme.palette.mode === 'dark';
 
   const [athlete, setAthlete] = useState(null);
+  const [aiData, setAiData] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   useEffect(() => {
     const stored = localStorage.getItem('student');
@@ -38,6 +62,28 @@ export default function AtheleteDashboard() {
 
   const handleLogout = () => { localStorage.removeItem('student'); navigate('/'); };
   const parseSports  = (raw) => { try { return JSON.parse(raw); } catch { return raw ? [raw] : []; } };
+
+  const fetchAiAssistant = async () => {
+    if (!athlete) return;
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const { data } = await axios.get(`/api/students/${athlete.id}/ai-assistant`, { headers });
+      if (data.success && data.assistant) {
+        setAiData(data.assistant);
+      } else {
+        setAiData(data);
+      }
+    } catch (err) {
+      console.error(err);
+      setAiError(err.response?.data?.message || 'Failed to generate training suggestions. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
 
   if (!athlete) return null;
 
@@ -154,6 +200,133 @@ export default function AtheleteDashboard() {
           {/* ── Right: Details ─────────────────────────────────── */}
           <Grid item xs={12} md={8}>
             <Box sx={{ display:'flex', flexDirection:'column', gap: 3 }}>
+
+              {/* AI Sports Assistant */}
+              <Box sx={{
+                bgcolor: cardBg, backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)',
+                border:`1px solid ${border}`, borderRadius:'20px', p: 3,
+                backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+                boxShadow: isDark ? '0 12px 32px rgba(6,182,212,0.08)' : '0 4px 16px rgba(0,0,0,0.04)',
+                borderLeft: `4px solid ${CYAN}`
+              }}>
+                <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb: 2.5 }}>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                    <AutoAwesomeIcon sx={{ color: CYAN, fontSize: 18 }} />
+                    <Typography sx={{ fontFamily:"'Google Sans',sans-serif", fontWeight:700, fontSize:'0.72rem', letterSpacing:'0.15em', color: textSec, textTransform:'uppercase' }}>
+                      AI SPORTS ASSISTANT
+                    </Typography>
+                  </Box>
+                  {aiData && (
+                    <Button size="small" variant="text" onClick={fetchAiAssistant} disabled={aiLoading} sx={{ fontSize:'0.72rem', textTransform:'none', color: LIME, fontFamily:"'Google Sans',sans-serif", fontWeight:600 }}>
+                      Recalculate Plan
+                    </Button>
+                  )}
+                </Box>
+
+                {!aiData ? (
+                  <Box>
+                    <Typography sx={{ color: textPri, fontFamily: "'Google Sans',sans-serif", fontSize: '0.9rem', mb: 2, lineHeight: 1.6 }}>
+                      Get a personalized athletic development plan tailored to your age classification, sports profile, and competitive background.
+                    </Typography>
+                    
+                    {aiError && (
+                      <Alert severity="error" sx={{ mb: 2, borderRadius: '12px', fontFamily: "'Google Sans',sans-serif" }}>
+                        {aiError}
+                      </Alert>
+                    )}
+
+                    <Button
+                      variant="contained"
+                      disabled={aiLoading}
+                      onClick={fetchAiAssistant}
+                      sx={{
+                        borderRadius: '9999px',
+                        fontFamily: "'Google Sans',sans-serif",
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        bgcolor: isDark ? '#d4ff00' : '#536600',
+                        color: isDark ? '#0A0A12' : '#ffffff',
+                        boxShadow: isDark ? '0 0 16px rgba(212,255,0,0.3)' : 'none',
+                        '&:hover': { bgcolor: isDark ? '#e8ff4d' : '#3e4c00' }
+                      }}
+                    >
+                      {aiLoading ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CircularProgress size={12} sx={{ color: isDark ? '#0A0A12' : '#ffffff' }} />
+                          <span>Generating plan...</span>
+                        </Box>
+                      ) : (
+                        "Get My Improvement Plan"
+                      )}
+                    </Button>
+
+                    {aiLoading && (
+                      <Typography variant="body2" sx={{ color: textSec, mt: 1.5, fontFamily: "'Google Sans',sans-serif", fontStyle: 'italic' }}>
+                        Generating your training suggestions...
+                      </Typography>
+                    )}
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                    <Typography sx={{ color: textPri, fontFamily: "'Google Sans',sans-serif", fontSize: '0.9rem', fontWeight: 500, fontStyle: 'italic', borderLeft: `3px solid ${LIME}`, pl: 1.5, py: 0.5, bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: '0 8px 8px 0' }}>
+                      "{aiData.greeting || `Hello ${athlete.full_name}!`}"
+                    </Typography>
+
+                    <Typography sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontSize: '0.88rem', lineHeight: 1.6 }}>
+                      {aiData.athleteSummary}
+                    </Typography>
+
+                    <Grid container spacing={2}>
+                      {[
+                        { label: 'Diet Suggestions', data: aiData.dietSuggestions },
+                        { label: 'Training Suggestions', data: aiData.trainingSuggestions },
+                        { label: 'Stamina Plan', data: aiData.staminaPlan },
+                        { label: 'Strength Focus', data: aiData.strengthFocus },
+                        { label: 'Flexibility Tips', data: aiData.flexibilityTips },
+                      ].map(({ label, data }) => (
+                        <Grid item xs={12} key={label}>
+                          <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${border}`, borderRadius: '12px', p: 2 }}>
+                            <Typography variant="caption" sx={{ color: CYAN, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, letterSpacing: '0.04em', display: 'block', mb: 1 }}>
+                              {label.toUpperCase()}
+                            </Typography>
+                            {renderList(data, textPri)}
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+
+                    {aiData.weeklyRoutine && (
+                      <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', border: `1px solid ${border}`, borderRadius: '12px', p: 2 }}>
+                        <Typography variant="caption" sx={{ color: INDIGO, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, letterSpacing: '0.04em', display: 'block', mb: 1 }}>
+                          WEEKLY DEVELOPMENT ROUTINE
+                        </Typography>
+                        {renderList(aiData.weeklyRoutine, textPri)}
+                      </Box>
+                    )}
+
+                    {aiData.motivationMessage && (
+                      <Box sx={{ p: 2, borderRadius: '12px', bgcolor: isDark ? 'rgba(212,255,0,0.04)' : 'rgba(83,102,0,0.03)', border: `1px dashed ${alpha(LIME, 0.3)}`, textAlign: 'center' }}>
+                        <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontSize: '0.88rem', fontWeight: 500, color: LIME, fontStyle: 'italic' }}>
+                          "{aiData.motivationMessage}"
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {aiData.safetyNote && (
+                      <Box sx={{ p: 2, borderRadius: '12px', bgcolor: isDark ? 'rgba(251,191,36,0.04)' : 'rgba(251,191,36,0.05)', border: `1px solid rgba(251,191,36,0.25)` }}>
+                        <Typography variant="caption" sx={{ color: '#FBBF24', fontFamily: "'Google Sans',sans-serif", fontWeight: 700, letterSpacing: '0.05em', display: 'block', mb: 0.5 }}>⚠️ SAFETY NOTE</Typography>
+                        <Typography sx={{ color: textPri, fontFamily: "'Google Sans',sans-serif", fontSize: '0.85rem', lineHeight: 1.6 }}>{aiData.safetyNote}</Typography>
+                      </Box>
+                    )}
+
+                    {aiData.disclaimer && (
+                      <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontSize: '0.72rem', display: 'block', textAlign: 'center', mt: 1, borderTop: `1px solid ${border}`, pt: 1.5 }}>
+                        ⚠️ {aiData.disclaimer}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Box>
 
               {/* Personal Info */}
               <Box sx={{
