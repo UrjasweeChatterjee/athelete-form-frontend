@@ -8,6 +8,15 @@ import axios from 'axios';
 const SPORTS = ['Cricket','Football','Badminton','Athletics','Swimming','Basketball','Volleyball','Table Tennis'];
 const SPORT_EMOJI = { Cricket:'🏏',Football:'⚽',Badminton:'🏸',Athletics:'🏃',Swimming:'🏊',Basketball:'🏀',Volleyball:'🏐','Table Tennis':'🏓' };
 const STEPS = ['Personal','Guardian','Address','Club','Sports','Documents'];
+const STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana',
+  'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands',
+  'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir',
+  'Ladakh', 'Lakshadweep', 'Puducherry'
+];
 
 const calcAge = (dob) => {
   if (!dob) return '';
@@ -270,7 +279,16 @@ export default function AtheleteRegister() {
     <Grid container spacing={2.5} key="s2">
       <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="address" label="Address" rows={2} />
       <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="city" label="City" half />
-      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="state" label="State" half />
+      <Grid item xs={12} sm={6}>
+        <FormControl fullWidth error={!!errors.state} sx={inputSx(isDark)}>
+          <InputLabel>State</InputLabel>
+          <Select name="state" value={form.state || ''} onChange={change} label="State">
+            <MenuItem value="" disabled>Select State</MenuItem>
+            {STATES.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          </Select>
+          {errors.state && <FormHelperText>{errors.state}</FormHelperText>}
+        </FormControl>
+      </Grid>
       <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="pincode" label="Pincode" half max={6} />
     </Grid>,
 
