@@ -23,6 +23,7 @@ export default function Navbar({ title, onLogout, userName }) {
         borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
         color: 'text.primary',
         zIndex: 1200,
+        borderRadius: 0
       }}
     >
       <Toolbar sx={{ gap: 2, minHeight: '60px !important', px: { xs: 2, md: 4 } }}>

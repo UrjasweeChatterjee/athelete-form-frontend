@@ -215,12 +215,12 @@ export default function CoachDashboard() {
     setExporting(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/admin/export-athletes', {
+      const res = await axios.get('/api/coaches/export/csv', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a'); a.href = url; a.download = 'athletes_export.xlsx'; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = 'athletes_export.csv'; a.click();
       window.URL.revokeObjectURL(url);
     } catch { setError('Export failed. Please try again.'); }
     finally { setExporting(false); }
@@ -238,17 +238,17 @@ export default function CoachDashboard() {
 
   const statCards = activeTab === 'ai' && aiInsights
     ? [
-        { label: 'Total Athletes', value: aiInsights.summary.totalAthletes, icon: GroupsIcon, color: CYAN },
-        { label: 'Strong Profiles', value: aiInsights.summary.strongProfiles, icon: VerifiedIcon, color: LIME },
-        { label: 'Needs Review', value: aiInsights.summary.needsReview, icon: PendingIcon, color: '#FBBF24' },
-        { label: 'Incomplete Profiles', value: aiInsights.summary.incompleteProfiles, icon: BlockIcon, color: '#ffb4ab' },
-      ]
+      { label: 'Total Athletes', value: aiInsights.summary.totalAthletes, icon: GroupsIcon, color: CYAN },
+      { label: 'Strong Profiles', value: aiInsights.summary.strongProfiles, icon: VerifiedIcon, color: LIME },
+      { label: 'Needs Review', value: aiInsights.summary.needsReview, icon: PendingIcon, color: '#FBBF24' },
+      { label: 'Incomplete Profiles', value: aiInsights.summary.incompleteProfiles, icon: BlockIcon, color: '#ffb4ab' },
+    ]
     : [
-        { label: 'Total Athletes', value: stats.total || athletes.length, icon: GroupsIcon, color: CYAN },
-        { label: 'Pending', value: stats.pending || athletes.filter(a => a.status === 'Pending').length, icon: PendingIcon, color: '#FBBF24' },
-        { label: 'Approved', value: stats.approved || athletes.filter(a => a.status === 'Approved').length, icon: VerifiedIcon, color: LIME },
-        { label: 'Rejected', value: stats.rejected || athletes.filter(a => a.status === 'Rejected').length, icon: BlockIcon, color: '#ffb4ab' },
-      ];
+      { label: 'Total Athletes', value: stats.total || athletes.length, icon: GroupsIcon, color: CYAN },
+      { label: 'Pending', value: stats.pending || athletes.filter(a => a.status === 'Pending').length, icon: PendingIcon, color: '#FBBF24' },
+      { label: 'Approved', value: stats.approved || athletes.filter(a => a.status === 'Approved').length, icon: VerifiedIcon, color: LIME },
+      { label: 'Rejected', value: stats.rejected || athletes.filter(a => a.status === 'Rejected').length, icon: BlockIcon, color: '#ffb4ab' },
+    ];
 
   const renderAiInsightsList = () => {
     if (aiLoading) {
