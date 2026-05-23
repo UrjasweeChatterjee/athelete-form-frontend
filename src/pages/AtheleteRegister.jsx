@@ -23,6 +23,7 @@ const INIT = {
   address:'',city:'',state:'',pincode:'',
   club_name:'',state_association:'',sports_applied:[],competition_name:'',age_group:'',
   photo:null,birth_certificate:null,id_proof:null,
+  height_cm:'',weight_kg:'',
 };
 
 // Styled input for Stitch dark look
@@ -73,10 +74,36 @@ export default function AtheleteRegister() {
   const tPri  = isDark ? '#e2e4cf' : '#1F313E';
   const tSec  = isDark ? 'rgba(197,201,172,0.65)' : 'rgba(31,49,62,0.55)';
 
+  const height = parseFloat(form.height_cm);
+  const weight = parseFloat(form.weight_kg);
+  let liveBmi = null;
+  let liveBmiCategory = '';
+
+  if (!isNaN(height) && height > 0 && !isNaN(weight) && weight > 0) {
+    const bmiVal = weight / ((height / 100) * (height / 100));
+    liveBmi = bmiVal.toFixed(2);
+
+    const b = parseFloat(liveBmi);
+    if (b < 18.5) liveBmiCategory = 'Underweight';
+    else if (b >= 18.5 && b <= 24.9) liveBmiCategory = 'Normal';
+    else if (b >= 25 && b <= 29.9) liveBmiCategory = 'Overweight';
+    else if (b >= 30) liveBmiCategory = 'Obese';
+  }
+
   const change = (e) => {
     const { name, value } = e.target;
+    if ((name === 'height_cm' || name === 'weight_kg') && value !== '') {
+      const val = parseFloat(value);
+      if (val < 0) {
+        setErrors(p => ({ ...p, [name]: 'Negative values are not allowed.' }));
+      } else {
+        setErrors(p => ({ ...p, [name]: '' }));
+      }
+    }
     setForm(p => ({ ...p, [name]: value, ...(name==='dob' ? { age: calcAge(value) } : {}) }));
-    if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
+    if (name !== 'height_cm' && name !== 'weight_kg' && errors[name]) {
+      setErrors(p => ({ ...p, [name]: '' }));
+    }
     setApiError('');
   };
   const toggleSport = (s) => {
@@ -97,6 +124,19 @@ export default function AtheleteRegister() {
       if (!/^\d{10}$/.test(form.mobile)) e.mobile='10-digit mobile required.';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email='Valid email required.';
       if (!form.password||form.password.length<6) e.password='Min 6 characters.';
+
+      if (form.height_cm !== '') {
+        const hVal = parseFloat(form.height_cm);
+        if (isNaN(hVal) || hVal <= 0) {
+          e.height_cm = 'Height must be a positive number.';
+        }
+      }
+      if (form.weight_kg !== '') {
+        const wVal = parseFloat(form.weight_kg);
+        if (isNaN(wVal) || wVal <= 0) {
+          e.weight_kg = 'Weight must be a positive number.';
+        }
+      }
     }
     if (step===1) {
       if (!form.guardian_name.trim()) e.guardian_name='Guardian name required.';
@@ -125,7 +165,8 @@ export default function AtheleteRegister() {
     try {
       const fd = new FormData();
       ['full_name','dob','age','gender','mobile','email','password','guardian_name','guardian_mobile','relation',
-       'address','city','state','pincode','club_name','state_association','competition_name','age_group']
+       'address','city','state','pincode','club_name','state_association','competition_name','age_group',
+       'height_cm','weight_kg']
         .forEach(f => fd.append(f, form[f]||''));
       fd.append('sports_applied', JSON.stringify(form.sports_applied));
       if (form.photo) fd.append('photo', form.photo);
@@ -158,6 +199,56 @@ export default function AtheleteRegister() {
       <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="mobile" label="Mobile Number" half max={10} />
       <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="email" label="Email Address" type="email" half />
       <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="password" label="Password" type="password" />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="height_cm" label="Height (cm)" type="number" half />
+      <RegField form={form} onChange={change} errors={errors} isDark={isDark} name="weight_kg" label="Weight (kg)" type="number" half />
+      {liveBmi && (
+        <Grid item xs={12}>
+          <Box sx={{
+            p: 2,
+            borderRadius: '12px',
+            bgcolor: isDark ? 'rgba(6, 182, 212, 0.08)' : 'rgba(0, 78, 92, 0.04)',
+            border: `1px solid ${isDark ? 'rgba(6, 182, 212, 0.2)' : 'rgba(0, 78, 92, 0.1)'}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            transition: 'all 0.3s ease',
+          }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: tSec, display: 'block', mb: 0.5, fontFamily: "'Google Sans', sans-serif", fontSize: '0.75rem', fontWeight: 500 }}>
+                Live Calculated BMI
+              </Typography>
+              <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: CYAN, lineHeight: 1, fontFamily: "'Google Sans', sans-serif" }}>
+                {liveBmi}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" sx={{ color: tSec, display: 'block', mb: 0.5, fontFamily: "'Google Sans', sans-serif", fontSize: '0.75rem', fontWeight: 500 }}>
+                Category
+              </Typography>
+              <Chip
+                label={liveBmiCategory}
+                size="small"
+                sx={{
+                  fontFamily: "'Google Sans', sans-serif",
+                  fontWeight: 700,
+                  bgcolor:
+                    liveBmiCategory === 'Normal' ? (isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(52, 211, 153, 0.1)') :
+                    liveBmiCategory === 'Underweight' ? (isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)') :
+                    (isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)'),
+                  color:
+                    liveBmiCategory === 'Normal' ? '#34D399' :
+                    liveBmiCategory === 'Underweight' ? '#FBBF24' : '#EF4444',
+                  border: `1px solid ${
+                    liveBmiCategory === 'Normal' ? 'rgba(52, 211, 153, 0.3)' :
+                    liveBmiCategory === 'Underweight' ? 'rgba(251, 191, 36, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                  }`
+                }}
+              />
+            </Box>
+          </Box>
+        </Grid>
+      )}
     </Grid>,
 
     // Step 1 – Guardian

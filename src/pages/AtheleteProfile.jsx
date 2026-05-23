@@ -268,6 +268,194 @@ export default function AtheleteProfile() {
                 </Grid>
               </SectionCard>
 
+              {athlete.height_cm && athlete.weight_kg && (
+                <SectionCard icon={PersonIcon} iconColor={CYAN} title="Fitness Profile" isDark={isDark} cardBg={cardBg} border={border}>
+                  <Grid container spacing={2.5}>
+                    {[
+                      { label: 'Height', value: `${athlete.height_cm} cm` },
+                      { label: 'Weight', value: `${athlete.weight_kg} kg` },
+                      { label: 'Calculated BMI', value: athlete.bmi || '—' },
+                    ].map(({ label, value }) => (
+                      <Grid item xs={12} sm={4} key={label}>
+                        <InfoRow label={label} value={value} textPri={textPri} textSec={textSec} />
+                      </Grid>
+                    ))}
+                    {athlete.bmi_category && (
+                      <Grid item xs={12}>
+                        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, letterSpacing: '0.04em' }}>
+                            FITNESS STATUS:
+                          </Typography>
+                          <Chip
+                            label={athlete.bmi_category}
+                            size="small"
+                            sx={{
+                              fontFamily: "'Google Sans',sans-serif",
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              bgcolor:
+                                athlete.bmi_category === 'Normal' ? (isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(52, 211, 153, 0.1)') :
+                                athlete.bmi_category === 'Underweight' ? (isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)') :
+                                (isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)'),
+                              color:
+                                athlete.bmi_category === 'Normal' ? '#34D399' :
+                                athlete.bmi_category === 'Underweight' ? '#FBBF24' : '#EF4444',
+                              border: `1px solid ${
+                                athlete.bmi_category === 'Normal' ? 'rgba(52, 211, 153, 0.3)' :
+                                athlete.bmi_category === 'Underweight' ? 'rgba(251, 191, 36, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                              }`
+                            }}
+                          />
+                        </Box>
+                      </Grid>
+                    )}
+
+                    {/* BMI Visualization Chart */}
+                    {athlete.bmi && (
+                      <Grid item xs={12} sx={{ mt: 4, pt: 1 }}>
+                        <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.12em', display: 'block', mb: 4.5, textTransform: 'uppercase' }}>
+                          BMI Reference Chart & Indicator
+                        </Typography>
+                        
+                        <Box sx={{ position: 'relative', px: 1.5, mb: 4.5 }}>
+                          {/* Segmented Gradient Track */}
+                          <Box sx={{
+                            height: '10px',
+                            borderRadius: '9999px',
+                            background: 'linear-gradient(90deg, #FBBF24 0%, #FBBF24 14%, #34D399 14%, #34D399 40%, #FB7185 40%, #FB7185 60%, #EF4444 60%, #EF4444 100%)',
+                            boxShadow: isDark ? '0 0 10px rgba(0,0,0,0.5) inset' : '0 2px 4px rgba(0,0,0,0.06) inset',
+                            position: 'relative'
+                          }}>
+                            {/* Segment ticks */}
+                            {[14, 40, 60].map((tick) => (
+                              <Box key={tick} sx={{
+                                position: 'absolute',
+                                left: `${tick}%`,
+                                top: -2,
+                                width: '2px',
+                                height: '14px',
+                                bgcolor: isDark ? '#0A0A12' : '#ffffff',
+                                zIndex: 1
+                              }} />
+                            ))}
+                          </Box>
+
+                          {/* Indicator Pin */}
+                          {(() => {
+                            const bmiVal = parseFloat(athlete.bmi);
+                            const minBmi = 15;
+                            const maxBmi = 40;
+                            const pct = Math.min(100, Math.max(0, ((bmiVal - minBmi) / (maxBmi - minBmi)) * 100));
+                            
+                            const getBmiColor = (b) => {
+                              if (b < 18.5) return '#FBBF24'; // Amber
+                              if (b >= 18.5 && b <= 24.9) return '#34D399'; // Emerald
+                              if (b >= 25 && b <= 29.9) return '#FB7185'; // Rose
+                              return '#EF4444'; // Red
+                            };
+                            const markerColor = getBmiColor(bmiVal);
+                            
+                            return (
+                              <Box sx={{
+                                position: 'absolute',
+                                left: `${pct}%`,
+                                top: '-2px',
+                                transform: 'translateX(-50%)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                transition: 'left 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                zIndex: 2
+                              }}>
+                                {/* Pulsing indicator dot */}
+                                <Box sx={{
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: '50%',
+                                  bgcolor: markerColor,
+                                  border: `2px solid ${isDark ? '#0A0A12' : '#ffffff'}`,
+                                  boxShadow: `0 0 12px ${markerColor}, 0 4px 10px rgba(0,0,0,0.35)`,
+                                  position: 'relative',
+                                  '&::after': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    top: -6,
+                                    left: -6,
+                                    right: -6,
+                                    bottom: -6,
+                                    borderRadius: '50%',
+                                    border: `2px solid ${markerColor}`,
+                                    animation: 'bmiPulse 2s infinite ease-in-out',
+                                    '@keyframes bmiPulse': {
+                                      '0%': { transform: 'scale(0.9)', opacity: 0.9 },
+                                      '50%': { transform: 'scale(1.6)', opacity: 0 },
+                                      '100%': { transform: 'scale(0.9)', opacity: 0 }
+                                    }
+                                  }
+                                }} />
+                                
+                                {/* Dynamic Floating Tag */}
+                                <Box sx={{
+                                  position: 'absolute',
+                                  bottom: '22px',
+                                  bgcolor: isDark ? 'rgba(23, 23, 37, 0.95)' : '#ffffff',
+                                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                                  borderRadius: '8px',
+                                  px: 1.2,
+                                  py: 0.4,
+                                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                                  whiteSpace: 'nowrap',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  backdropFilter: 'blur(8px)'
+                                }}>
+                                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 800, color: markerColor, fontFamily: "'Google Sans', sans-serif" }}>
+                                    {bmiVal.toFixed(2)}
+                                  </Typography>
+                                  <Box sx={{
+                                    position: 'absolute',
+                                    bottom: '-4px',
+                                    width: 8,
+                                    height: 8,
+                                    bgcolor: isDark ? 'rgba(23, 23, 37, 0.95)' : '#ffffff',
+                                    borderRight: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                                    borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                                    transform: 'rotate(45deg)'
+                                  }} />
+                                </Box>
+                              </Box>
+                            );
+                          })()}
+                        </Box>
+
+                        {/* Reference labels */}
+                        <Grid container spacing={1} sx={{ mt: 1 }}>
+                          {[
+                            { name: 'Underweight', range: '< 18.5', color: '#FBBF24' },
+                            { name: 'Normal', range: '18.5 - 24.9', color: '#34D399' },
+                            { name: 'Overweight', range: '25.0 - 29.9', color: '#FB7185' },
+                            { name: 'Obese', range: '≥ 30.0', color: '#EF4444' },
+                          ].map((seg) => (
+                            <Grid item xs={3} key={seg.name} sx={{ textAlign: 'center' }}>
+                              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mb: 0.2 }}>
+                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: seg.color }} />
+                                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: textPri, fontFamily: "'Google Sans', sans-serif" }}>
+                                  {seg.name}
+                                </Typography>
+                              </Box>
+                              <Typography variant="caption" sx={{ color: textSec, display: 'block', fontFamily: "'Google Sans', sans-serif", fontSize: '0.65rem' }}>
+                                {seg.range}
+                              </Typography>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Grid>
+                    )}
+                  </Grid>
+                </SectionCard>
+              )}
+
               <SectionCard icon={FamilyIcon} iconColor={INDIGO} title="Guardian Details" isDark={isDark} cardBg={cardBg} border={border}>
                 <Grid container spacing={2.5}>
                   {[

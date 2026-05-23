@@ -65,7 +65,7 @@ function AthleteCard({ athlete, onView, onApprove, onReject, actionLoading, isDa
             <Chip label={athlete.status || 'Pending'} size="small" sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.05em', height: 20, bgcolor: sc.bg, color: sc.color, border: `1px solid ${sc.border}`, borderRadius: '9999px' }} />
           </Box>
           <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif" }}>
-            {athlete.mobile} · {athlete.age_group || 'N/A'} · {athlete.competition_name || 'N/A'}
+            {athlete.mobile} · {athlete.age_group || 'N/A'} · {athlete.competition_name || 'N/A'}{athlete.bmi ? ` · BMI: ${athlete.bmi} (${athlete.bmi_category})` : ''}
           </Typography>
           {sports.length > 0 && (
             <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
