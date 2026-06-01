@@ -1,6 +1,9 @@
 // pages/AtheleteDashboard.jsx  –  Stitch "Digital ID" Design
-import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, Chip, Grid, useTheme, alpha, Divider, Button, Alert, CircularProgress } from '@mui/material';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  Box, Container, Typography, Chip, Grid, useTheme, alpha, Divider, Button, Alert, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, InputLabel, FormControl
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { STATUS_COLORS } from '../context/ThemeContext';
@@ -14,6 +17,14 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import PaymentIcon from '@mui/icons-material/Payment';
+import DownloadIcon from '@mui/icons-material/Download';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import QrCodeIcon from '@mui/icons-material/QrCode';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
 
 const renderList = (data, textPri) => {
   if (!data) return null;
@@ -58,6 +69,208 @@ export default function AtheleteDashboard() {
   const [bmiChartData, setBmiChartData] = useState([]);
   const [bmiChartLoading, setBmiChartLoading] = useState(true);
 
+  // New tournaments & payments state
+  const [tournaments, setTournaments] = useState([]);
+  const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentSuccess, setPaymentSuccess] = useState('');
+  const [downloading, setDownloading] = useState(null);
+
+  // Sandbox Mode Simulator state
+  const [sandboxDialog, setSandboxDialog] = useState(false);
+  const [sandboxOrder, setSandboxOrder]   = useState(null);
+  
+  // High-fidelity Razorpay simulator inputs
+  const [activeMethod,  setActiveMethod]  = useState('card');
+  const [simUpi,        setSimUpi]        = useState('');
+  const [simCardNo,     setSimCardNo]     = useState('');
+  const [simCardExp,    setSimCardExp]    = useState('');
+  const [simCardCvv,    setSimCardCvv]    = useState('');
+  const [simCardName,   setSimCardName]   = useState('');
+  const [simBank,       setSimBank]       = useState('');
+  const [outcomeOpen,   setOutcomeOpen]   = useState(false);
+
+  // Load Razorpay checkout script
+  const loadRazorpayScript = () =>
+    new Promise((resolve) => {
+      if (document.getElementById('razorpay-script')) { resolve(true); return; }
+      const script    = document.createElement('script');
+      script.id       = 'razorpay-script';
+      script.src      = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload   = () => resolve(true);
+      script.onerror  = () => resolve(false);
+      document.body.appendChild(script);
+    });
+
+  const fetchTournaments = useCallback(async (studentId) => {
+    try {
+      const { data } = await axios.get(`/api/tournaments/student/${studentId}`);
+      setTournaments(data.tournaments || []);
+    } catch (err) {
+      console.error('Failed to load tournaments:', err);
+    }
+  }, []);
+
+  const handleDownloadReceipt = async (paymentId) => {
+    setDownloading(paymentId);
+    try {
+      const res = await axios.get(`/api/payments/receipt/${paymentId}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a   = document.createElement('a');
+      a.href    = url;
+      a.download = `payment-receipt-${paymentId}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setPaymentError('Failed to download receipt. Please try again.');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleSimulateSuccess = async (order) => {
+    setPaying(true);
+    setSandboxDialog(false);
+    setPaymentError('');
+    try {
+      const mockPaymentId = `pay_mock_${Date.now()}`;
+      const mockSignature = `sig_mock_${Date.now()}`;
+      await axios.post('/api/payments/verify', {
+        payment_record_id:  order.payment_record_id,
+        razorpay_order_id:  order.razorpay_order_id,
+        razorpay_payment_id: mockPaymentId,
+        razorpay_signature:  mockSignature,
+      });
+      setPaymentSuccess('🎉 [TEST MODE] Simulated successful payment! Your registration is complete.');
+      setTimeout(() => setPaymentSuccess(''), 5000);
+      fetchTournaments(athlete.id);
+    } catch (err) {
+      setPaymentError(err.response?.data?.message || 'Simulation verification failed.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleSimulateFailure = async (order) => {
+    setPaying(true);
+    setSandboxDialog(false);
+    setPaymentError('');
+    try {
+      await axios.post('/api/payments/failed', {
+        payment_record_id: order.payment_record_id,
+        failure_reason:    'Simulated payment failure (User cancelled).',
+      });
+      setPaymentError('❌ [TEST MODE] Simulated payment cancellation/failure.');
+      fetchTournaments(athlete.id);
+    } catch (err) {
+      setPaymentError(err.response?.data?.message || 'Simulation failure logging failed.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handlePayNowForTournament = async (t) => {
+    setPaying(true);
+    setPaymentError('');
+
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      setPaymentError('Failed to load payment gateway. Please check your internet connection.');
+      setPaying(false);
+      return;
+    }
+
+    const paymentData = {
+      student_id:       athlete.id,
+      competition_name: t.name,
+      fee_type:         'Competition Fee',
+      amount:           t.fee_amount,
+      tournament_id:    t.id,
+    };
+
+    let orderData;
+    try {
+      const { data } = await axios.post('/api/payments/create-order', paymentData);
+      orderData = data;
+    } catch (err) {
+      setPaymentError(err.response?.data?.message || 'Failed to create payment order.');
+      setPaying(false);
+      return;
+    }
+
+    if (orderData.razorpay_order_id.startsWith('order_mock_')) {
+      setSandboxOrder(orderData);
+      setSandboxDialog(true);
+      setPaying(false);
+      return;
+    }
+
+    const options = {
+      key:         orderData.key_id,
+      amount:      orderData.amount,
+      currency:    orderData.currency,
+      name:        'Sports Club Management',
+      description: `Competition Fee – ${paymentData.competition_name}`,
+      order_id:    orderData.razorpay_order_id,
+      prefill: {
+        name:    athlete.full_name || '',
+        email:   athlete.email    || '',
+        contact: athlete.mobile   || '',
+      },
+      theme: {
+        color: '#d4ff00',
+      },
+      modal: {
+        ondismiss: async () => {
+          try {
+            await axios.post('/api/payments/failed', {
+              payment_record_id: orderData.payment_record_id,
+              failure_reason:    'Payment cancelled by user.',
+            });
+          } catch {}
+          setPaymentError('Payment was cancelled. You can retry anytime.');
+          setPaying(false);
+          fetchTournaments(athlete.id);
+        },
+      },
+      handler: async (paymentResponse) => {
+        try {
+          await axios.post('/api/payments/verify', {
+            payment_record_id:  orderData.payment_record_id,
+            razorpay_order_id:  paymentResponse.razorpay_order_id,
+            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+            razorpay_signature:  paymentResponse.razorpay_signature,
+          });
+          setPaymentSuccess('🎉 Payment successful! Your registration is complete.');
+          setTimeout(() => setPaymentSuccess(''), 5000);
+          fetchTournaments(athlete.id);
+        } catch (verifyErr) {
+          setPaymentError(verifyErr.response?.data?.message || 'Payment verification failed. Please contact support.');
+          fetchTournaments(athlete.id);
+        } finally {
+          setPaying(false);
+        }
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.on('payment.failed', async (response) => {
+      try {
+        await axios.post('/api/payments/failed', {
+          payment_record_id: orderData.payment_record_id,
+          failure_reason:    response.error?.description || 'Payment failed.',
+        });
+      } catch {}
+      setPaymentError(`Payment failed: ${response.error?.description || 'Unknown error.'}`);
+      setPaying(false);
+      fetchTournaments(athlete.id);
+    });
+
+    rzp.open();
+  };
+
   useEffect(() => {
     const fetchBmiStats = async () => {
       try {
@@ -85,8 +298,10 @@ export default function AtheleteDashboard() {
   useEffect(() => {
     const stored = localStorage.getItem('student');
     if (!stored) { navigate('/athelete/login'); return; }
-    setAthlete(JSON.parse(stored));
-  }, [navigate]);
+    const parsed = JSON.parse(stored);
+    setAthlete(parsed);
+    fetchTournaments(parsed.id);
+  }, [navigate, fetchTournaments]);
 
   const handleLogout = () => { localStorage.removeItem('student'); navigate('/'); };
   const parseSports = (raw) => { try { return JSON.parse(raw); } catch { return raw ? [raw] : []; } };
@@ -153,12 +368,32 @@ export default function AtheleteDashboard() {
               My Profile
             </Typography>
           </Box>
-          <Button
-            variant="outlined" size="small" startIcon={<LogoutIcon />} onClick={handleLogout}
-            sx={{ borderRadius: '9999px', borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)', color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, '&:hover': { borderColor: LIME, color: LIME } }}
-          >
-            Logout
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {/* ── My Achievements link (Module 6) ── */}
+            <Button
+              variant="outlined" size="small"
+              startIcon={<WorkspacePremiumIcon />}
+              onClick={() => navigate('/athelete/achievements')}
+              sx={{ borderRadius: '9999px', borderColor: isDark ? 'rgba(212,255,0,0.3)' : 'rgba(83,102,0,0.25)', color: LIME, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, '&:hover': { borderColor: LIME, bgcolor: isDark ? 'rgba(212,255,0,0.06)' : 'rgba(83,102,0,0.04)' } }}
+            >
+              My Achievements
+            </Button>
+            {/* ── My Payments & Fees link (Module 8) ── */}
+            <Button
+              variant="outlined" size="small"
+              startIcon={<PaymentIcon />}
+              onClick={() => navigate('/athelete/payments')}
+              sx={{ borderRadius: '9999px', borderColor: isDark ? 'rgba(6,182,212,0.3)' : 'rgba(0,78,92,0.25)', color: CYAN, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, '&:hover': { borderColor: CYAN, bgcolor: isDark ? 'rgba(6,182,212,0.06)' : 'rgba(0,78,92,0.04)' } }}
+            >
+              Payments & Fees
+            </Button>
+            <Button
+              variant="outlined" size="small" startIcon={<LogoutIcon />} onClick={handleLogout}
+              sx={{ borderRadius: '9999px', borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)', color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, '&:hover': { borderColor: LIME, color: LIME } }}
+            >
+              Logout
+            </Button>
+          </Box>
         </Box>
 
         <Grid container spacing={3}>
@@ -489,9 +724,192 @@ export default function AtheleteDashboard() {
             )}
           </Grid>
 
-          {/* ── Right: Details ─────────────────────────────────── */}
           <Grid item xs={12} md={8}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+              {/* ── Upcoming Tournaments Timeline Section ──────────────── */}
+              <Box sx={{
+                bgcolor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+                border: `1px solid ${border}`, borderRadius: '20px', p: 3,
+                backgroundImage: isDark ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 50%)' : 'none',
+                boxShadow: isDark ? '0 12px 32px rgba(212,255,0,0.08)' : '0 4px 16px rgba(0,0,0,0.04)',
+                borderLeft: `4px solid ${LIME}`
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                  <EmojiEventsIcon sx={{ color: LIME, fontSize: 18 }} />
+                  <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.15em', color: textSec, textTransform: 'uppercase' }}>
+                    UPCOMING TOURNAMENTS TIMELINE
+                  </Typography>
+                  <Chip 
+                    label={`${tournaments.length} Scheduled`} 
+                    size="small" 
+                    sx={{ bgcolor: isDark ? 'rgba(212,255,0,0.1)' : 'rgba(83,102,0,0.08)', color: LIME, fontWeight: 700, fontFamily: "'Google Sans',sans-serif", height: 18, fontSize: '0.62rem' }} 
+                  />
+                </Box>
+
+                {paymentError && <Alert severity="error" sx={{ mb: 2.5, borderRadius: '12px' }} onClose={() => setPaymentError('')}>{paymentError}</Alert>}
+                {paymentSuccess && <Alert severity="success" sx={{ mb: 2.5, borderRadius: '12px' }} onClose={() => setPaymentSuccess('')}>{paymentSuccess}</Alert>}
+
+                {tournaments.length === 0 ? (
+                  <Box sx={{ py: 3, textAlign: 'center' }}>
+                    <Typography sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontSize: '0.88rem' }}>
+                      No upcoming tournaments listed yet. Check back soon!
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ 
+                    maxHeight: '380px', 
+                    overflowY: 'auto', 
+                    pr: 1.5,
+                    position: 'relative',
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+                    '&::-webkit-scrollbar-thumb': { bgcolor: border, borderRadius: '10px' }
+                  }}>
+                    {/* Vertical Timeline Line */}
+                    <Box sx={{
+                      position: 'absolute',
+                      left: '16px',
+                      top: '8px',
+                      bottom: '8px',
+                      width: '2px',
+                      bgcolor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'
+                    }} />
+
+                    {tournaments.map((t, index) => {
+                      const isPaid = t.payment_status === 'Paid';
+                      const formattedDate = new Date(t.event_date).toLocaleDateString('en-IN', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                      });
+
+                      return (
+                        <Box key={t.id} sx={{ 
+                          position: 'relative', 
+                          pl: '40px', 
+                          mb: index === tournaments.length - 1 ? 0 : 3.5 
+                        }}>
+                          {/* Timeline Dot */}
+                          <Box sx={{
+                            position: 'absolute',
+                            left: '10px',
+                            top: '4px',
+                            width: '14px',
+                            height: '14px',
+                            borderRadius: '50%',
+                            bgcolor: isPaid ? '#34D399' : CYAN,
+                            border: `3px solid ${bg}`,
+                            boxShadow: isPaid ? '0 0 10px rgba(52,211,153,0.5)' : `0 0 10px ${alpha(CYAN, 0.5)}`,
+                            zIndex: 2,
+                            transition: 'all 0.3s ease'
+                          }} />
+
+                          {/* Content Card */}
+                          <Box sx={{
+                            p: 2.5,
+                            border: `1px solid ${isPaid ? 'rgba(52,211,153,0.2)' : border}`,
+                            borderRadius: '16px',
+                            bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)',
+                            transition: 'transform 0.2s, border-color 0.2s',
+                            '&:hover': {
+                              transform: 'translateX(3px)',
+                              borderColor: isPaid ? '#34D399' : CYAN
+                            }
+                          }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                              <Box>
+                                <Typography variant="subtitle1" sx={{ fontFamily: "'Google Sans Display',sans-serif", fontWeight: 700, color: textPri, lineHeight: 1.3 }}>
+                                  {t.name}
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
+                                  <Chip 
+                                    label={t.sport} 
+                                    size="small" 
+                                    sx={{ height: 16, fontSize: '0.6rem', fontFamily: "'Google Sans',sans-serif", fontWeight: 700, bgcolor: isDark ? 'rgba(6,182,212,0.12)' : 'rgba(0,78,92,0.08)', color: CYAN }} 
+                                  />
+                                  <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontWeight: 600 }}>
+                                    📅 {formattedDate}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Typography sx={{ fontFamily: "'Google Sans Display',sans-serif", fontWeight: 800, color: LIME, fontSize: '1.05rem' }}>
+                                ₹{parseFloat(t.fee_amount).toFixed(0)}
+                              </Typography>
+                            </Box>
+
+                            {t.description && (
+                              <Typography variant="body2" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontSize: '0.8rem', lineHeight: 1.4, mb: 2 }}>
+                                {t.description}
+                              </Typography>
+                            )}
+
+                            <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                              {isPaid ? (
+                                <>
+                                  <Chip 
+                                    icon={<CheckCircleIcon sx={{ fontSize: '14px !important', color: '#34D399 !important' }} />}
+                                    label="Registered & Paid"
+                                    color="success"
+                                    size="small"
+                                    sx={{ 
+                                      fontFamily: "'Google Sans',sans-serif", 
+                                      fontWeight: 700, 
+                                      fontSize: '0.72rem',
+                                      bgcolor: 'rgba(52,211,153,0.12)',
+                                      color: '#34D399',
+                                      border: '1px solid rgba(52,211,153,0.2)'
+                                    }}
+                                  />
+                                  {t.receipt_url && (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      onClick={() => handleDownloadReceipt(t.payment_id)}
+                                      disabled={downloading === t.payment_id}
+                                      sx={{ 
+                                        borderRadius: '8px', 
+                                        borderColor: 'rgba(52,211,153,0.3)', 
+                                        color: '#34D399', 
+                                        py: 0.2, px: 1.5,
+                                        fontSize: '0.72rem',
+                                        fontFamily: "'Google Sans',sans-serif",
+                                        fontWeight: 700,
+                                        textTransform: 'none',
+                                        '&:hover': { borderColor: '#34D399', bgcolor: 'rgba(52,211,153,0.05)' } 
+                                      }}
+                                    >
+                                      {downloading === t.payment_id ? <CircularProgress size={11} sx={{ color: '#34D399' }} /> : 'Receipt'}
+                                    </Button>
+                                  )}
+                                </>
+                              ) : (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => handlePayNowForTournament(t)}
+                                  disabled={paying}
+                                  sx={{ 
+                                    borderRadius: '8px', 
+                                    fontFamily: "'Google Sans',sans-serif", 
+                                    fontWeight: 700, 
+                                    fontSize: '0.72rem',
+                                    py: 0.4, px: 2,
+                                    bgcolor: LIME, 
+                                    color: '#0A0A12', 
+                                    textTransform: 'none',
+                                    '&:hover': { bgcolor: isDark ? '#e8ff4d' : '#3e4c00' } 
+                                  }}
+                                >
+                                  Apply Now
+                                </Button>
+                              )}
+                            </Box>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+              </Box>
 
               {/* AI Sports Assistant */}
               <Box sx={{
@@ -950,6 +1368,292 @@ export default function AtheleteDashboard() {
           </Grid>
         </Grid>
       </Container>
+
+      {/* ── Test Mode Sandbox Simulator Dialog (Razorpay Replica) ──────────────────── */}
+      <Dialog
+        open={sandboxDialog}
+        onClose={() => !paying && setSandboxDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: isDark ? '#0A0A12' : '#ffffff',
+            border: `1px solid ${border}`,
+            borderRadius: '24px',
+            overflow: 'hidden',
+            maxWidth: '650px',
+            boxShadow: isDark ? '0 24px 80px rgba(0,0,0,0.7)' : '0 8px 40px rgba(0,0,0,0.1)',
+          }
+        }}
+      >
+        <Box sx={{ bgcolor: '#111827', color: '#ffffff', p: 3, borderBottom: `1px solid ${border}`, position: 'relative' }}>
+          <Box sx={{ height: 3, width: '100%', position: 'absolute', top: 0, left: 0, background: `linear-gradient(90deg, ${CYAN}, ${LIME})` }} />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Box sx={{ width: 44, height: 44, bgcolor: '#1F2937', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: LIME, fontSize: '1.1rem' }}>
+                SC
+              </Box>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, lineHeight: 1.2 }}>
+                  Sports Club Management
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Google Sans',sans-serif" }}>
+                  {sandboxOrder?.fee_type || 'Competition Fee'}
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                Amount to Pay
+              </Typography>
+              <Typography sx={{ fontFamily: "'Google Sans Display',sans-serif", fontWeight: 800, fontSize: '1.4rem', color: LIME }}>
+                ₹{(sandboxOrder?.amount / 100).toLocaleString()}.00
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        <DialogContent sx={{ p: 0, minHeight: '320px', display: 'flex', flexDirection: 'column' }}>
+          {!outcomeOpen ? (
+            <Grid container sx={{ flex: 1 }}>
+              <Grid item xs={4} sx={{ borderRight: `1px solid ${border}`, bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  {[
+                    { id: 'card',    label: 'Card',     icon: CreditCardIcon },
+                    { id: 'upi',     label: 'UPI / QR', icon: QrCodeIcon },
+                    { id: 'netbank', label: 'Netbanking', icon: AccountBalanceIcon },
+                    { id: 'contact', label: 'Details',  icon: ContactPhoneIcon },
+                  ].map(m => {
+                    const active = activeMethod === m.id;
+                    const Icon = m.icon;
+                    return (
+                      <Button
+                        key={m.id}
+                        onClick={() => setActiveMethod(m.id)}
+                        sx={{
+                          justifyContent: 'flex-start',
+                          px: 2.5, py: 2,
+                          borderRadius: 0,
+                          fontFamily: "'Google Sans',sans-serif",
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          color: active ? CYAN : textSec,
+                          borderLeft: `4px solid ${active ? CYAN : 'transparent'}`,
+                          bgcolor: active ? (isDark ? 'rgba(6,182,212,0.05)' : 'rgba(0,78,92,0.03)') : 'transparent',
+                          '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' },
+                        }}
+                        startIcon={<Icon sx={{ color: active ? CYAN : textSec }} />}
+                      >
+                        {m.label}
+                      </Button>
+                    );
+                  })}
+                </Box>
+                <Box sx={{ p: 2, mt: 'auto', borderTop: `1px solid ${border}`, textAlign: 'center' }}>
+                  <Chip label="TEST SANDBOX" size="small" sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, bgcolor: 'rgba(212,255,0,0.1)', color: LIME, fontSize: '0.62rem' }} />
+                </Box>
+              </Grid>
+
+              <Grid item xs={8} sx={{ p: 3 }}>
+                {activeMethod === 'card' && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.85rem', color: textPri }}>
+                      Credit or Debit Card
+                    </Typography>
+                    <TextField
+                      size="small" fullWidth label="Card Number" placeholder="4111 1111 1111 1111"
+                      value={simCardNo} onChange={e => setSimCardNo(e.target.value)}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <TextField
+                        size="small" label="Expiry (MM/YY)" placeholder="12/29"
+                        value={simCardExp} onChange={e => setSimCardExp(e.target.value)}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                      />
+                      <TextField
+                        size="small" label="CVV" placeholder="123" type="password"
+                        value={simCardCvv} onChange={e => setSimCardCvv(e.target.value)}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                      />
+                    </Box>
+                    <TextField
+                      size="small" fullWidth label="Cardholder Name" placeholder="Mr. Athlete Name"
+                      value={simCardName} onChange={e => setSimCardName(e.target.value)}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                    />
+                    <Box sx={{ bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${border}`, borderRadius: '12px', p: 1.5, mt: 1 }}>
+                      <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", lineHeight: 1.4 }}>
+                        🔒 <strong>Razorpay Mock Checkout:</strong> Safe to use dummy card details to proceed.
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {activeMethod === 'upi' && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', textAlign: 'center' }}>
+                    <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.85rem', color: textPri, width: '100%', textAlign: 'left' }}>
+                      Scan QR Code or Pay via UPI
+                    </Typography>
+                    <Box sx={{ p: 1.5, bgcolor: '#ffffff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.1)', display: 'inline-flex', justifyContent: 'center', mb: 0.5 }}>
+                      <Box sx={{ width: 110, height: 110, display: 'flex', flexWrap: 'wrap', p: 0.5 }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', width: '100%', height: '100%' }}>
+                          {[
+                            1,0,1,1,
+                            0,1,0,0,
+                            1,0,1,1,
+                            1,1,0,1
+                          ].map((x, i) => (
+                            <Box key={i} sx={{ bgcolor: x ? '#000000' : 'transparent', borderRadius: '3px' }} />
+                          ))}
+                        </Box>
+                      </Box>
+                    </Box>
+                    <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", mb: 1 }}>
+                      Scan above code using any mock UPI App
+                    </Typography>
+                    <Divider sx={{ width: '100%', my: 0.5 }}>OR</Divider>
+                    <TextField
+                      size="small" fullWidth label="UPI ID / VPA" placeholder="athlete@upi"
+                      value={simUpi} onChange={e => setSimUpi(e.target.value)}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                    />
+                  </Box>
+                )}
+
+                {activeMethod === 'netbank' && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.85rem', color: textPri }}>
+                      Popular Banks
+                    </Typography>
+                    <Grid container spacing={1.5}>
+                      {[
+                        { id: 'sbi',   name: 'State Bank of India', code: 'SBI'  },
+                        { id: 'hdfc',  name: 'HDFC Bank',           code: 'HDFC' },
+                        { id: 'icici', name: 'ICICI Bank',          code: 'ICICI'},
+                        { id: 'axis',  name: 'Axis Bank',           code: 'AXIS' },
+                        { id: 'kotak', name: 'Kotak Mahindra',      code: 'KOTAK'},
+                        { id: 'pnb',   name: 'Punjab National',     code: 'PNB'  },
+                      ].map(b => {
+                        const sel = simBank === b.id;
+                        return (
+                          <Grid item xs={6} key={b.id}>
+                            <Button
+                              fullWidth
+                              onClick={() => setSimBank(b.id)}
+                              variant={sel ? 'contained' : 'outlined'}
+                              sx={{
+                                py: 1.5,
+                                borderRadius: '12px',
+                                fontFamily: "'Google Sans',sans-serif",
+                                fontWeight: 700,
+                                fontSize: '0.78rem',
+                                border: sel ? 'none' : `1px solid ${border}`,
+                                color: sel ? '#0A0A12' : textPri,
+                                bgcolor: sel ? LIME : 'transparent',
+                                '&:hover': {
+                                  bgcolor: sel ? '#e8ff4d' : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'),
+                                  borderColor: LIME,
+                                },
+                              }}
+                            >
+                              🏦 {b.code}
+                            </Button>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  </Box>
+                )}
+
+                {activeMethod === 'contact' && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.85rem', color: textPri }}>
+                      Athlete Details
+                    </Typography>
+                    <TextField
+                      size="small" fullWidth label="Full Name" value={athlete.full_name || ''} InputProps={{ readOnly: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                    />
+                    <TextField
+                      size="small" fullWidth label="Email" value={athlete.email || ''} InputProps={{ readOnly: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                    />
+                    <TextField
+                      size="small" fullWidth label="Phone" value={athlete.mobile || ''} InputProps={{ readOnly: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                    />
+                  </Box>
+                )}
+              </Grid>
+            </Grid>
+          ) : (
+            <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', flex: 1, gap: 2 }}>
+              <Typography variant="h5" sx={{ fontFamily: "'Google Sans Display',sans-serif", fontWeight: 800, color: LIME }}>
+                ⚡ Simulate Transaction Outcome
+              </Typography>
+              <Typography sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", fontSize: '0.88rem', maxWidth: 440, mb: 1, lineHeight: 1.5 }}>
+                Choose the mock status outcome for your sandbox transaction. This lets you test both payment confirmation logs and failure warnings immediately.
+              </Typography>
+
+              <Box sx={{ display: 'flex', gap: 2, width: '100%', maxWidth: 400, flexDirection: 'column' }}>
+                <Button
+                  variant="contained" fullWidth size="large"
+                  onClick={() => {
+                    handleSimulateSuccess(sandboxOrder);
+                    setOutcomeOpen(false);
+                  }}
+                  sx={{ borderRadius: '9999px', py: 1.5, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, bgcolor: '#34D399', color: '#0A0A12', '&:hover': { bgcolor: '#10B981' } }}
+                >
+                  ✓ Succeed Payment (Simulate Success)
+                </Button>
+                
+                <Button
+                  variant="outlined" fullWidth size="large"
+                  onClick={() => {
+                    handleSimulateFailure(sandboxOrder);
+                    setOutcomeOpen(false);
+                  }}
+                  sx={{ borderRadius: '9999px', py: 1.5, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, borderColor: '#EF4444', color: '#EF4444', '&:hover': { borderColor: '#DC2626', bgcolor: 'rgba(239,68,68,0.05)' } }}
+                >
+                  ✗ Fail Payment (Simulate Cancellation)
+                </Button>
+
+                <Button
+                  variant="text" fullWidth
+                  onClick={() => setOutcomeOpen(false)}
+                  sx={{ borderRadius: '9999px', fontFamily: "'Google Sans',sans-serif", fontWeight: 600, color: textSec }}
+                >
+                  ← Change Payment Details
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+
+        {!outcomeOpen && (
+          <Box sx={{ p: 2.5, borderTop: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)' }}>
+            <Button
+              onClick={() => setSandboxDialog(false)}
+              sx={{ borderRadius: '9999px', px: 3, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, color: textSec }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => setOutcomeOpen(true)}
+              sx={{
+                borderRadius: '9999px', px: 4, py: 1.2,
+                fontFamily: "'Google Sans',sans-serif", fontWeight: 700,
+                bgcolor: CYAN, color: '#0A0A12',
+                '&:hover': { bgcolor: isDark ? '#22d3ee' : '#0891b2' }
+              }}
+            >
+              Pay ₹{(sandboxOrder?.amount / 100).toLocaleString()}.00 →
+            </Button>
+          </Box>
+        )}
+      </Dialog>
     </Box>
   );
 }

@@ -5,6 +5,7 @@ import {
   Chip, CircularProgress, Alert, MenuItem, Select,
   InputAdornment, useTheme, alpha, Dialog, DialogTitle,
   DialogContent, DialogActions, IconButton, Tooltip, Divider,
+  FormControl, InputLabel,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -22,6 +23,10 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import BlockIcon from '@mui/icons-material/Block';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import PaymentIcon from '@mui/icons-material/Payment';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const STATUS_CONFIG = {
   Pending: { color: '#FBBF24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)' },
@@ -116,6 +121,7 @@ export default function CoachDashboard() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [actionLoading, setActionLoading] = useState(null);
@@ -127,6 +133,12 @@ export default function CoachDashboard() {
   const [aiInsights, setAiInsights] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+  // Tournaments states
+  const [tournaments, setTournaments] = useState([]);
+  const [tDialog, setTDialog]         = useState(false);
+  const [tLoading, setTLoading]       = useState(false);
+  const [tForm, setTForm]             = useState({ name: '', sport: 'Athletics', event_date: '', fee_amount: 1000, description: '' });
+
   const LIME = isDark ? '#d4ff00' : '#536600';
   const CYAN = isDark ? '#06b6d4' : '#004e5c';
   const INDIGO = '#6366f1';
@@ -135,6 +147,45 @@ export default function CoachDashboard() {
   const border = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
   const textPri = isDark ? '#e2e4cf' : '#1F313E';
   const textSec = isDark ? 'rgba(197,201,172,0.65)' : 'rgba(31,49,62,0.55)';
+
+  const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 4000); };
+
+  const fetchTournaments = useCallback(async () => {
+    try {
+      const { data } = await axios.get('/api/tournaments');
+      setTournaments(data.tournaments || []);
+    } catch (err) {
+      console.error('Failed to load tournaments:', err);
+    }
+  }, []);
+
+  const handleCreateTournament = async (e) => {
+    e.preventDefault();
+    setTLoading(true);
+    setError('');
+    try {
+      await axios.post('/api/tournaments/create', tForm);
+      showSuccess('🏆 Tournament created successfully!');
+      setTForm({ name: '', sport: 'Athletics', event_date: '', fee_amount: 1000, description: '' });
+      fetchTournaments();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create tournament.');
+    } finally {
+      setTLoading(false);
+    }
+  };
+
+  const handleDeleteTournament = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this tournament?')) return;
+    setError('');
+    try {
+      await axios.delete(`/api/tournaments/${id}`);
+      showSuccess('Tournament deleted successfully.');
+      fetchTournaments();
+    } catch (err) {
+      setError('Failed to delete tournament.');
+    }
+  };
 
   const fetchAthletes = useCallback(async () => {
     setLoading(true); setError('');
@@ -174,7 +225,8 @@ export default function CoachDashboard() {
     const coach = localStorage.getItem('coach');
     if (!coach) { navigate('/coach/login'); return; }
     fetchAthletes();
-  }, [navigate, fetchAthletes]);
+    fetchTournaments();
+  }, [navigate, fetchAthletes, fetchTournaments]);
 
   useEffect(() => {
     let result = athletes;
@@ -451,7 +503,14 @@ export default function CoachDashboard() {
               Athlete Management
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              size="small" startIcon={<EmojiEventsIcon />}
+              onClick={() => setTDialog(true)}
+              sx={{ borderRadius: '9999px', border: `1px solid ${isDark ? 'rgba(6,182,212,0.3)' : 'rgba(0,78,92,0.25)'}`, color: CYAN, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, '&:hover': { bgcolor: isDark ? 'rgba(6,182,212,0.06)' : 'rgba(0,78,92,0.04)' } }}
+            >
+              Tournaments Console
+            </Button>
             <Button size="small" startIcon={<RefreshIcon />} onClick={handleRefresh} sx={{ borderRadius: '9999px', borderColor: border, color: textSec, border: `1px solid ${border}`, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, '&:hover': { borderColor: CYAN, color: CYAN } }}>
               Refresh
             </Button>
@@ -466,7 +525,7 @@ export default function CoachDashboard() {
         </Box>
 
         {/* Toggle View Mode */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           <Button
             onClick={() => setActiveTab('list')}
             variant={activeTab === 'list' ? 'contained' : 'outlined'}
@@ -503,6 +562,60 @@ export default function CoachDashboard() {
             }}
           >
             AI Athlete Insights
+          </Button>
+
+          {/* ── Module 6: Results & Certificates ── */}
+          <Button
+            onClick={() => navigate('/coach/results-certificates')}
+            variant="outlined"
+            startIcon={<EmojiEventsIcon />}
+            sx={{
+              borderRadius: '9999px',
+              fontFamily: "'Google Sans',sans-serif",
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              color: '#6366f1',
+              borderColor: 'rgba(99,102,241,0.4)',
+              '&:hover': { bgcolor: 'rgba(99,102,241,0.06)', borderColor: '#6366f1' }
+            }}
+          >
+            Results & Certificates
+          </Button>
+
+          {/* ── Module 7: Notification Logs ── */}
+          <Button
+            onClick={() => navigate('/coach/notification-logs')}
+            variant="outlined"
+            startIcon={<NotificationsIcon />}
+            sx={{
+              borderRadius: '9999px',
+              fontFamily: "'Google Sans',sans-serif",
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              color: '#34D399',
+              borderColor: 'rgba(52,211,153,0.4)',
+              '&:hover': { bgcolor: 'rgba(52,211,153,0.06)', borderColor: '#34D399' }
+            }}
+          >
+            Notification Logs
+          </Button>
+
+          {/* ── Fee Payment System: Payment Tracking ── */}
+          <Button
+            onClick={() => navigate('/coach/payments')}
+            variant="outlined"
+            startIcon={<PaymentIcon />}
+            sx={{
+              borderRadius: '9999px',
+              fontFamily: "'Google Sans',sans-serif",
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              color: '#f59e0b',
+              borderColor: 'rgba(245,158,11,0.4)',
+              '&:hover': { bgcolor: 'rgba(245,158,11,0.06)', borderColor: '#f59e0b' }
+            }}
+          >
+            Payment Tracking
           </Button>
         </Box>
 
@@ -616,6 +729,142 @@ export default function CoachDashboard() {
               '&:hover': { bgcolor: dialog.status === 'Approved' ? '#e8ff4d' : '#7d0008' },
             }}>
             Confirm {dialog.status}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Tournaments & Events Console Modal ─────────────────── */}
+      <Dialog
+        open={tDialog}
+        onClose={() => !tLoading && setTDialog(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: isDark ? '#0A0A12' : '#ffffff',
+            border: `1px solid ${border}`,
+            borderRadius: '24px',
+            overflow: 'hidden',
+            boxShadow: isDark ? '0 24px 80px rgba(0,0,0,0.7)' : '0 8px 40px rgba(0,0,0,0.1)',
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontFamily: "'Google Sans Display',sans-serif", fontWeight: 800, color: textPri, pb: 1, display: 'flex', alignItems: 'center', gap: 1, borderBottom: `1px solid ${border}` }}>
+          🏆 Tournaments & Events Console
+        </DialogTitle>
+        <DialogContent sx={{ p: 4 }}>
+          <Grid container spacing={4}>
+            {/* Left side: Create form */}
+            <Grid item xs={12} md={5}>
+              <Box component="form" onSubmit={handleCreateTournament} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, p: 3, border: `1px solid ${border}`, borderRadius: '16px', bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)' }}>
+                <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '1rem', color: CYAN }}>
+                  Create Upcoming Tournament
+                </Typography>
+                
+                <TextField
+                  size="small" fullWidth label="Tournament Name" required
+                  placeholder="e.g. State Badminton Open 2025"
+                  value={tForm.name} onChange={e => setTForm(p => ({ ...p, name: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                />
+
+                <FormControl fullWidth size="small">
+                  <InputLabel sx={{ fontFamily: "'Google Sans',sans-serif" }}>Sport</InputLabel>
+                  <Select
+                    label="Sport" value={tForm.sport}
+                    onChange={e => setTForm(p => ({ ...p, sport: e.target.value }))}
+                    sx={{ borderRadius: '12px', fontFamily: "'Google Sans',sans-serif" }}
+                  >
+                    {['Cricket','Football','Badminton','Athletics','Swimming','Basketball','Volleyball','Table Tennis'].map(s => (
+                      <MenuItem key={s} value={s} sx={{ fontFamily: "'Google Sans',sans-serif" }}>{s}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  size="small" fullWidth label="Event Date" type="date" required
+                  InputLabelProps={{ shrink: true }}
+                  value={tForm.event_date} onChange={e => setTForm(p => ({ ...p, event_date: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                />
+
+                <FormControl fullWidth size="small">
+                  <InputLabel sx={{ fontFamily: "'Google Sans',sans-serif" }}>Participation Fee</InputLabel>
+                  <Select
+                    label="Participation Fee" value={tForm.fee_amount}
+                    onChange={e => setTForm(p => ({ ...p, fee_amount: e.target.value }))}
+                    sx={{ borderRadius: '12px', fontFamily: "'Google Sans',sans-serif" }}
+                  >
+                    {[200, 500, 1000, 1500, 2000, 3000].map(a => (
+                      <MenuItem key={a} value={a} sx={{ fontFamily: "'Google Sans',sans-serif" }}>₹{a.toLocaleString()}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  size="small" fullWidth label="Description (optional)" multiline rows={2}
+                  placeholder="Details about categories, venue, etc..."
+                  value={tForm.description} onChange={e => setTForm(p => ({ ...p, description: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                />
+
+                <Button
+                  type="submit" variant="contained" disabled={tLoading}
+                  startIcon={tLoading ? <CircularProgress size={14} sx={{ color: '#0A0A12' }} /> : <EmojiEventsIcon />}
+                  sx={{ borderRadius: '9999px', py: 1.2, fontFamily: "'Google Sans',sans-serif", fontWeight: 700, bgcolor: LIME, color: '#0A0A12', '&:hover': { bgcolor: isDark ? '#e8ff4d' : '#3e4c00' } }}
+                >
+                  {tLoading ? 'Creating...' : 'Create Tournament'}
+                </Button>
+              </Box>
+            </Grid>
+
+            {/* Right side: Tournaments list */}
+            <Grid item xs={12} md={7}>
+              <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '1rem', color: textPri, mb: 2 }}>
+                Active Events ({tournaments.length})
+              </Typography>
+              {tournaments.length === 0 ? (
+                <Box sx={{ border: `1px solid ${border}`, borderRadius: '16px', py: 8, textAlign: 'center' }}>
+                  <Typography sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif" }}>No upcoming tournaments listed yet.</Typography>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '420px', overflowY: 'auto', pr: 1 }}>
+                  {tournaments.map(t => (
+                    <Box key={t.id} sx={{ p: 2, border: `1px solid ${border}`, borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: isDark ? 'rgba(255,255,255,0.01)' : '#ffffff' }}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                          <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.9rem', color: textPri }}>
+                            {t.name}
+                          </Typography>
+                          <Chip label={t.sport} size="small" sx={{ height: 18, fontSize: '0.65rem', fontFamily: "'Google Sans',sans-serif", fontWeight: 700, bgcolor: isDark ? 'rgba(6,182,212,0.12)' : 'rgba(0,78,92,0.08)', color: CYAN }} />
+                        </Box>
+                        <Typography variant="caption" sx={{ color: textSec, fontFamily: "'Google Sans',sans-serif", display: 'block' }}>
+                          📅 Event Date: {new Date(t.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </Typography>
+                        {t.description && (
+                          <Typography variant="caption" sx={{ color: textSec, fontStyle: 'italic', mt: 0.5, display: 'block' }}>
+                            {t.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography sx={{ fontFamily: "'Google Sans Display',sans-serif", fontWeight: 800, color: LIME, fontSize: '1rem' }}>
+                          ₹{parseFloat(t.fee_amount).toFixed(0)}
+                        </Typography>
+                        <IconButton size="small" onClick={() => handleDeleteTournament(t.id)} sx={{ color: '#EF4444', bgcolor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', '&:hover': { bgcolor: '#EF4444', color: '#ffffff' } }}>
+                          <DeleteIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: `1px solid ${border}` }}>
+          <Button onClick={() => setTDialog(false)} sx={{ borderRadius: '9999px', px: 3, fontFamily: "'Google Sans',sans-serif", fontWeight: 600, color: textSec }}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>

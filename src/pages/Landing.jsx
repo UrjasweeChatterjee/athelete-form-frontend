@@ -1,16 +1,14 @@
 // pages/Landing.jsx  –  Stitch "Elite Core" Design
-import React from 'react';
-import { Box, Typography, Button, Container, Grid, Chip, alpha, useTheme } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
-import LoginIcon from '@mui/icons-material/Login';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import SpeedIcon from '@mui/icons-material/Speed';
-import GroupsIcon from '@mui/icons-material/Groups';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
+import GroupsIcon from '@mui/icons-material/Groups';
+import LoginIcon from '@mui/icons-material/Login';
+import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
 import ShieldIcon from '@mui/icons-material/Shield';
-import ThemeToggle from '../components/ThemeToggle';
+import SpeedIcon from '@mui/icons-material/Speed';
+import { Box, Button, Chip, Container, Grid, Typography, alpha, useTheme } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 const NAV_CARDS = [
   { id: 'register', label: 'Athlete Registration', sub: 'Commence Intake', icon: PersonAddAltIcon, path: '/athelete/register', accent: '#d4ff00', iconBg: 'rgba(212,255,0,0.1)' },
