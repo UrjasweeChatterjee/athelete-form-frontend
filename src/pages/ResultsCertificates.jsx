@@ -7,7 +7,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, TextField, Select, MenuItem, useTheme, alpha, Dialog,
   DialogTitle, DialogContent, DialogActions, Grid, Tooltip,
-  IconButton, InputLabel, FormControl, Divider,
+  IconButton, InputLabel, FormControl, Divider, Checkbox,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -55,6 +55,8 @@ export default function ResultsCertificates() {
   const [uploadFile,     setUploadFile]     = useState(null);
   const [createDialog,   setCreateDialog]   = useState(false);
   const [editRows,       setEditRows]       = useState({}); // { [resultId]: { attendance, medal, resultText } }
+  const [selectedIds,    setSelectedIds]    = useState([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(null); // 'publish' | 'generate'
 
   // ── New result form ───────────────────────────────────────────
   const [newForm, setNewForm] = useState({
@@ -71,6 +73,7 @@ export default function ResultsCertificates() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError('');
+    setSelectedIds([]); // Clear selection on refresh
     try {
       const [resData, studData] = await Promise.all([
         axios.get('/api/achievements/admin'),
@@ -230,6 +233,78 @@ export default function ResultsCertificates() {
     }
   };
 
+  // ── Selection Handlers ─────────────────────────────────────────
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(filtered.map(r => r.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  // ── Bulk Actions Handlers ──────────────────────────────────────
+  const handleBulkPublish = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkActionLoading('publish');
+    setError('');
+    try {
+      const pendingEdits = selectedIds.filter(id => editRows[id]);
+      if (pendingEdits.length > 0) {
+        await Promise.all(pendingEdits.map(id =>
+          axios.put(`/api/achievements/${id}/result`, editRows[id])
+        ));
+        setEditRows(prev => {
+          const next = { ...prev };
+          pendingEdits.forEach(id => delete next[id]);
+          return next;
+        });
+      }
+
+      const { data } = await axios.post('/api/achievements/admin/bulk-publish', { ids: selectedIds });
+      showSuccess(data.message || 'Selected results published successfully.');
+      setSelectedIds([]);
+      await fetchData();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to publish selected results.');
+    } finally {
+      setBulkActionLoading(null);
+    }
+  };
+
+  const handleBulkGenerate = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkActionLoading('generate');
+    setError('');
+    try {
+      const pendingEdits = selectedIds.filter(id => editRows[id]);
+      if (pendingEdits.length > 0) {
+        await Promise.all(pendingEdits.map(id =>
+          axios.put(`/api/achievements/${id}/result`, editRows[id])
+        ));
+        setEditRows(prev => {
+          const next = { ...prev };
+          pendingEdits.forEach(id => delete next[id]);
+          return next;
+        });
+      }
+
+      const { data } = await axios.post('/api/achievements/admin/bulk-generate', { ids: selectedIds });
+      showSuccess(data.message || '⏳ Bulk certificate generation started! Refresh in a minute.');
+      setSelectedIds([]);
+      setTimeout(() => fetchData(), 5000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to generate selected certificates.');
+    } finally {
+      setBulkActionLoading(null);
+    }
+  };
+
   // ── Filter ────────────────────────────────────────────────────
   const filtered = results.filter(r =>
     !search || r.student_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -294,6 +369,71 @@ export default function ResultsCertificates() {
           />
         </Box>
 
+        {/* ── Bulk Actions Panel ────────────────────────────── */}
+        {selectedIds.length > 0 && (
+          <Box sx={{
+            mb: 3, p: 2,
+            bgcolor: isDark ? 'rgba(6,182,212,0.08)' : 'rgba(0,78,92,0.04)',
+            border: `1px solid ${CYAN}`,
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 2,
+            boxShadow: `0 4px 12px ${isDark ? 'rgba(6,182,212,0.1)' : 'rgba(0,0,0,0.02)'}`,
+            animation: 'fadeIn 0.3s ease both'
+          }}>
+            <Typography sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 600, color: textPri, fontSize: '0.9rem' }}>
+              Selected <strong>{selectedIds.length}</strong> record{selectedIds.length !== 1 ? 's' : ''}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setSelectedIds([])}
+                sx={{ borderRadius: '9999px', borderColor: border, color: textSec, fontFamily: "'Google Sans',sans-serif" }}
+              >
+                Clear Selection
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={bulkActionLoading === 'publish' ? <CircularProgress size={12} sx={{ color: '#ffffff' }} /> : <PublishIcon />}
+                onClick={handleBulkPublish}
+                disabled={bulkActionLoading !== null}
+                sx={{
+                  borderRadius: '9999px',
+                  fontFamily: "'Google Sans',sans-serif",
+                  fontWeight: 700,
+                  bgcolor: CYAN,
+                  color: '#ffffff',
+                  '&:hover': { bgcolor: isDark ? '#0891b2' : '#003741' }
+                }}
+              >
+                Publish Selected
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={bulkActionLoading === 'generate' ? <CircularProgress size={12} sx={{ color: '#0A0A12' }} /> : <PictureAsPdfIcon sx={{ color: '#0A0A12' }} />}
+                onClick={handleBulkGenerate}
+                disabled={bulkActionLoading !== null}
+                sx={{
+                  borderRadius: '9999px',
+                  fontFamily: "'Google Sans',sans-serif",
+                  fontWeight: 700,
+                  bgcolor: LIME,
+                  color: '#0A0A12',
+                  '&:hover': { bgcolor: isDark ? '#e8ff4d' : '#3e4c00' }
+                }}
+              >
+                Generate and Send to all
+              </Button>
+            </Box>
+          </Box>
+        )}
+
         {/* ── Table ─────────────────────────────────────────── */}
         {loading ? (
           <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -319,6 +459,14 @@ export default function ResultsCertificates() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
+                      <TableCell sx={{ width: 50, borderColor: border, bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', py: 1.5 }}>
+                        <Checkbox
+                          indeterminate={selectedIds.length > 0 && selectedIds.length < filtered.length}
+                          checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                          onChange={handleSelectAll}
+                          sx={{ color: textSec, '&.Mui-checked': { color: LIME }, p: 0 }}
+                        />
+                      </TableCell>
                       {['Student', 'Competition', 'Date', 'Category', 'Age Group', 'Attendance', 'Medal', 'Result Text', 'Status', 'Certificate', 'Actions'].map(h => (
                         <TableCell key={h} sx={{ fontFamily: "'Google Sans',sans-serif", fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.06em', color: textSec, textTransform: 'uppercase', borderColor: border, bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', whiteSpace: 'nowrap', py: 1.5 }}>
                           {h}
@@ -337,6 +485,13 @@ export default function ResultsCertificates() {
 
                       return (
                         <TableRow key={row.id} sx={{ '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' } }}>
+                          <TableCell sx={{ borderColor: border, py: 1.5 }}>
+                            <Checkbox
+                              checked={selectedIds.includes(row.id)}
+                              onChange={() => handleSelectRow(row.id)}
+                              sx={{ color: textSec, '&.Mui-checked': { color: LIME }, p: 0 }}
+                            />
+                          </TableCell>
 
                           {/* Student */}
                           <TableCell sx={{ borderColor: border, py: 1.5 }}>

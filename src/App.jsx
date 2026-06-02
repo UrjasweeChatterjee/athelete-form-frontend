@@ -21,6 +21,7 @@ import Success              from './pages/Success.jsx';
 import Achievements         from './pages/Achievements.jsx';
 import ResultsCertificates  from './pages/ResultsCertificates.jsx';
 import NotificationLogs     from './pages/NotificationLogs.jsx';
+import VerifyCertificate    from './pages/VerifyCertificate.jsx';
 // ── Fee Payment Module pages ──────────────────────────────────
 import StudentPayments      from './pages/StudentPayments.jsx';
 import PaymentTracking      from './pages/PaymentTracking.jsx';
@@ -39,6 +40,7 @@ function App() {
           <Route path="/athelete/dashboard"     element={<AtheleteDashboard />} />
           <Route path="/athelete/achievements"  element={<Achievements />} />
           <Route path="/athelete/payments"      element={<StudentPayments />} />
+          <Route path="/verify-certificate/:id" element={<VerifyCertificate />} />
           <Route path="/success"                element={<Success />} />
 
           {/* Coach / Admin routes */}
