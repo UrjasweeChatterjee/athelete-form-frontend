@@ -99,7 +99,7 @@ export default function ResultsCertificates() {
     }));
   };
 
-  const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 4000); };
+  const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 8000); };
 
   // ── Save Result ───────────────────────────────────────────────
   const handleSaveResult = async (resultId) => {
@@ -120,6 +120,16 @@ export default function ResultsCertificates() {
   const handlePublish = async (resultId) => {
     setActionLoading(`publish_${resultId}`);
     try {
+      // Auto-save pending edits if any before publishing
+      const edits = editRows[resultId];
+      if (edits) {
+        await axios.put(`/api/achievements/${resultId}/result`, edits);
+        setEditRows(prev => {
+          const next = { ...prev };
+          delete next[resultId];
+          return next;
+        });
+      }
       await axios.put(`/api/achievements/${resultId}/publish`);
       showSuccess('Result published! Student notification email sent.');
       await fetchData();
@@ -134,9 +144,20 @@ export default function ResultsCertificates() {
   const handleGenerateCert = async (resultId) => {
     setActionLoading(`cert_${resultId}`);
     try {
-      await axios.post(`/api/achievements/${resultId}/generate-certificate`);
-      showSuccess('Certificate generated! Student notification email sent.');
-      await fetchData();
+      // Auto-save pending edits if any before generating certificate
+      const edits = editRows[resultId];
+      if (edits) {
+        await axios.put(`/api/achievements/${resultId}/result`, edits);
+        setEditRows(prev => {
+          const next = { ...prev };
+          delete next[resultId];
+          return next;
+        });
+      }
+      const { data } = await axios.post(`/api/achievements/${resultId}/generate-certificate`);
+      showSuccess(data.message || '⏳ Certificate generation started! The student will receive an email once ready. Click Refresh in a minute to confirm.');
+      // Delay refresh since generation happens asynchronously in the background
+      setTimeout(() => fetchData(), 5000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to generate certificate.');
     } finally {
@@ -147,11 +168,22 @@ export default function ResultsCertificates() {
   // ── Upload Certificate ────────────────────────────────────────
   const handleUploadCert = async () => {
     if (!uploadFile || !uploadDialog.resultId) return;
-    setActionLoading(`upload_${uploadDialog.resultId}`);
+    const resultId = uploadDialog.resultId;
+    setActionLoading(`upload_${resultId}`);
     try {
+      // Auto-save pending edits if any before uploading certificate
+      const edits = editRows[resultId];
+      if (edits) {
+        await axios.put(`/api/achievements/${resultId}/result`, edits);
+        setEditRows(prev => {
+          const next = { ...prev };
+          delete next[resultId];
+          return next;
+        });
+      }
       const formData = new FormData();
       formData.append('certificate', uploadFile);
-      await axios.post(`/api/achievements/${uploadDialog.resultId}/upload-certificate`, formData, {
+      await axios.post(`/api/achievements/${resultId}/upload-certificate`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       showSuccess('Certificate uploaded! Student notification email sent.');
