@@ -1,32 +1,47 @@
 // pages/CoachDashboard.jsx  –  Stitch "Admin Terminal" Design
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box, Container, Typography, TextField, Button, Grid,
-  Chip, CircularProgress, Alert, MenuItem, Select,
-  InputAdornment, useTheme, alpha, Dialog, DialogTitle,
-  DialogContent, DialogActions, IconButton, Tooltip, Divider,
-  FormControl, InputLabel,
-} from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import Navbar from '../components/Navbar';
-import SearchIcon from '@mui/icons-material/Search';
-import LogoutIcon from '@mui/icons-material/Logout';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import BlockIcon from '@mui/icons-material/Block';
 import CancelIcon from '@mui/icons-material/Cancel';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import GroupsIcon from '@mui/icons-material/Groups';
-import PendingIcon from '@mui/icons-material/Pending';
-import VerifiedIcon from '@mui/icons-material/Verified';
-import BlockIcon from '@mui/icons-material/Block';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import LogoutIcon from '@mui/icons-material/Logout';
 import PaymentIcon from '@mui/icons-material/Payment';
-import DeleteIcon from '@mui/icons-material/Delete';
+import PendingIcon from '@mui/icons-material/Pending';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import {
+  Alert,
+  alpha,
+  Box,
+  Button,
+  Chip, CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  Grid,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  MenuItem, Select,
+  TextField,
+  Tooltip,
+  Typography,
+  useTheme,
+} from '@mui/material';
+import axios from 'axios';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 
 const STATUS_CONFIG = {
   Pending: { color: '#FBBF24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)' },
@@ -583,7 +598,7 @@ export default function CoachDashboard() {
           </Button>
 
           {/* ── Module 7: Notification Logs ── */}
-          <Button
+          {/* <Button
             onClick={() => navigate('/coach/notification-logs')}
             variant="outlined"
             startIcon={<NotificationsIcon />}
@@ -598,7 +613,7 @@ export default function CoachDashboard() {
             }}
           >
             Notification Logs
-          </Button>
+          </Button> */}
 
           {/* ── Fee Payment System: Payment Tracking ── */}
           <Button
